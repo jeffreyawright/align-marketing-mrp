@@ -40,10 +40,26 @@ vignettes/*.pdf
 .Renviron
 
 # pkgdown site
-docs/
+# NOTE: disabled. This project uses docs/ for methodology.md and convergence
+# diagnostics, which CLAUDE.md requires to be committed. Re-enable only if
+# pkgdown is ever added, and then scope it to the generated subdirectory.
+# docs/
 
 # translation temp files
 po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# --- Project-specific ---
+# Raw ANES source data never enters the repo; only cleaned/recoded data.
+data/raw/
+
+# Fitted model artifacts are large binaries. Commit diagnostics to docs/ instead.
+models/
+
+# ANES reference PDFs/codebooks are large public binaries -- fetch them locally
+# rather than committing. See docs/README.md for what to import and from where.
+docs/*.pdf
+docs/*.html
+docs/*_files/
