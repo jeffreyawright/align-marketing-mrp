@@ -79,7 +79,7 @@ align-marketing-mrp/
 ├── R/
 │   ├── process_anes_2024.R       # [built] ANES cleaning + recoding -> data/cleaned/
 │   ├── utils.R                   # [built] canonical categories, CD formatting, frame std.
-│   ├── run_marketing_mrp.R       # [ported, unrun] brms/Stan reference backend
+│   ├── run_marketing_mrp.R       # [built] Stan spec artifact + brms cross-check
 │   ├── build_poststrat_frame.R   # [todo] ACS poststratification frame construction
 │   └── poststratify.R            # [todo] aggregate posteriors onto frame, output estimates
 ├── python/
@@ -130,8 +130,8 @@ collapsed ESS that no amount of `target_accept` fully fixes.
 
 ```python
 def mrp_model(age, sex, race, edu, state, cd, y=None):
-    # Group-level scales
-    sigma_age = numpyro.sample("sigma_age", dist.HalfNormal(1.0))
+    # Group-level scales. Exponential(1), NOT HalfNormal -- see "Priors" below.
+    sigma_age = numpyro.sample("sigma_age", dist.Exponential(1.0))
 
     # NON-CENTERED: sample standardized offsets, then scale.
     z_age     = numpyro.sample("z_age", dist.Normal(0, 1).expand([n_age]))
@@ -148,7 +148,27 @@ def mrp_model(age, sex, race, edu, state, cd, y=None):
     numpyro.sample("y", dist.Bernoulli(logits=logit_p), obs=y)
 ```
 
-Prior choices should follow Gelman et al. conventions for MRP. Half-Normal(1) on group-level standard deviations. Weakly informative Normal(0, 2) on fixed intercept if included.
+### Priors — one specification, three implementations
+
+| | group-level sd | intercept |
+|---|---|---|
+| `python/fit.py` (bambi) | `Exponential(1)` | `Normal(0, 1.5)` |
+| `R/run_marketing_mrp.R` (brms) | `exponential(1)` | `normal(0, 1.5)` |
+| any hand-written NumPyro model | `Exponential(1)` | `Normal(0, 1.5)` |
+
+**`exponential(1)` on group-level sds and `normal(0, 1.5)` on the intercept.**
+Do not substitute Half-Normal. An earlier version of this document specified
+`HalfNormal(1)` / `Normal(0, 2)`, matching neither running implementation, which
+would have silently invalidated any cross-implementation comparison.
+
+This matters more here than it usually would. `sigma_state` is ≈0.05, so the
+data is nearly uninformative about the geographic variance components and the
+prior largely *is* the posterior for them. Exponential(1) has a heavier right
+tail than HalfNormal(1) and will give visibly different sigma estimates exactly
+where this project's geography lives.
+
+`docs/stan/*.stan` is the authoritative written form — regenerate it with
+`Rscript R/run_marketing_mrp.R <question>` rather than hand-maintaining a copy.
 
 ### Is `(1 | cd)` worth including?
 
@@ -230,8 +250,10 @@ Rscript R/process_anes_2024.R          # clean and recode ANES -> data/cleaned/ 
 Rscript R/build_poststrat_frame.R      # build ACS frame                         [todo]
 Rscript R/poststratify.R               # aggregate posteriors, output estimates  [todo]
 
-# brms/Stan reference backend (needs R/mister_p.R + the ACS frame; not yet ported)
+# Stan specification artifact -> docs/stan/  (seconds, no fitting)
 Rscript R/run_marketing_mrp.R basic_facts
+# + one-off brms fit and comparison against the JAX posterior -> docs/validation/
+Rscript R/run_marketing_mrp.R basic_facts --fit
 
 # Python/JAX pipeline
 pip install -r python/requirements.txt   # JAX with CUDA + NumPyro + bambi
@@ -259,13 +281,24 @@ local path `/mnt/data/Surveys/anes/data/2024/`.
 
 Ported from `r-scoring/run_marketing_mrp.R` and `r-scoring/process_anes_2024.R` in the demographai-platform repo. The brms/Stan inference backend is being replaced with JAX/NumPyro for GPU acceleration. The statistical model specification (varying intercepts by demographic and geographic groups, binary outcome, logit link) is identical.
 
+### Two fitting paths, different jobs
+
+- **`python/fit.py` is production.** Fits on GPU, poststratifies per draw onto the ACS frame with the vintage guard, emits district and state estimates with credible intervals.
+- **`R/run_marketing_mrp.R` is a validation and documentation artifact.** It emits the generated Stan program and, with `--fit`, cross-checks the posterior against the JAX run. It does *not* poststratify.
+
+**`mister_p.R` is deliberately not ported.** It was the only thing blocking the R script from running, and `python/fit.py` already poststratifies correctly and with uncertainty. Porting it would create a second poststratification implementation needing its own ACS-vintage guard — cost without benefit.
+
+The cross-check matters because the existing validation of `python/fit.py` is bambi-against-bambi: same library, same sampler, same priors. That establishes the data plumbing is faithful, not that the model specification is right. brms/Stan is a genuinely different stack, so agreement across it is independent evidence.
+
+Backtracking to a pure rstan workflow is cheap and does not require maintaining a standing brms path: `data/cleaned/*.csv` is ecosystem-neutral, and the model is six varying intercepts and two priors in any dialect. The expensive, defect-prone part — the recode — is already in R.
+
 ## Key source files from platform repo (for reference during extraction)
 
 - `r-scoring/run_marketing_mrp.R` — brms pipeline for country_track (ported to `R/`)
 - `r-scoring/process_anes_2024.R` — ANES loading and demographic recoding (ported to `R/`)
 - `r-scoring/utils.R` — canonical demographic level definitions (ported to `R/utils.R`)
 - `data/cleaned_survey_data/country_track.{csv,rds}` — validation target for the port
-- `r-scoring/mister_p.R` — poststratification aggregator (**not yet ported**)
+- `r-scoring/mister_p.R` — poststratification aggregator (**deliberately not ported**; `python/fit.py` supersedes it, see below)
 - `data/census_tables/synthetic_frames_combined.rds` — ACS frame (**not yet ported**)
 - Raw ANES 2024 source: `anes_timeseries_2024_csv_20250808.csv` (not in repo, on local disk)
 

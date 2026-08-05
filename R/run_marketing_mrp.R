@@ -1,38 +1,46 @@
 # ==============================================================================
 # Script: run_marketing_mrp.R
-# Purpose: Bayesian MRP for the MOVE marketing funnel questions (brms/Stan).
+# Purpose: Specification artifact + cross-implementation validation, in the
+#          rstan ecosystem. NOT a production fitting path.
 # Ported from: demographai-platform/r-scoring/run_marketing_mrp.R
 #
-# STATUS: ported but NOT yet runnable in this repo. It still depends on two
-# artifacts that live in the platform repo and have not been brought over:
-#   - R/mister_p.R                          (poststratification aggregator)
-#   - data/frames/synthetic_frames_combined.rds  (ACS poststrat frame)
-# Steps 1-3 are structurally complete; steps 4-5 will fail until those land.
+# python/fit.py is the production path: it fits on GPU and poststratifies per
+# draw with the ACS vintage guard. This script exists for two things that the
+# bambi/NumPyro path cannot provide on its own:
 #
-# This is the brms/Stan backend being replaced by JAX/NumPyro. It is kept as
-# the reference implementation and validation target for the ported model:
-# NumPyro posteriors should agree with these within posterior uncertainty.
+#   1. A METHODOLOGY ARTIFACT. brms::stancode() emits the generated Stan
+#      program -- priors, likelihood, parameterization, all explicit -- without
+#      fitting anything. That is the model in a form a reviewer or methodologist
+#      can audit directly, and it is regenerated rather than maintained.
 #
-# Usage: Rscript R/run_marketing_mrp.R [question]
-#   question: basic_facts (default) | election_efficacy | congress_approval
-#             | country_track (validation fixture)
+#   2. A CROSS-IMPLEMENTATION CHECK. The existing validation of python/fit.py is
+#      bambi-against-bambi: same library, same sampler, same priors. It proves
+#      the data plumbing is faithful, not that the model specification is right.
+#      brms/Stan is a genuinely different stack, so agreement across it is real
+#      evidence. Run once per question, keep the artifact, move on.
+#
+# Poststratification was deliberately removed. It required mister_p.R, which was
+# never ported, and python/fit.py already does it correctly with uncertainty.
+# Porting mister_p.R would mean a second poststratification implementation
+# needing its own ACS-vintage guard -- cost without benefit.
+#
+# Usage:
+#   Rscript R/run_marketing_mrp.R basic_facts           # stancode only (seconds)
+#   Rscript R/run_marketing_mrp.R basic_facts --fit     # + fit and compare to JAX
 # ==============================================================================
 
 suppressPackageStartupMessages({
   library(tidyverse)
   library(brms)
-  library(cmdstanr)
-  library(tictoc)
   library(data.table)
 })
 
 source(file.path("R", "utils.R"))
 
-args <- commandArgs(trailingOnly = TRUE)
+args     <- commandArgs(trailingOnly = TRUE)
 question <- if (length(args) >= 1) args[1] else "basic_facts"
+do_fit   <- "--fit" %in% args
 
-# country_track is the validation fixture, not a marketing question -- it is
-# accepted here so the brms fit can be compared against the platform's.
 VALID_QUESTIONS <- c("basic_facts", "election_efficacy", "congress_approval",
                      "country_track")
 if (!question %in% VALID_QUESTIONS) {
@@ -41,49 +49,14 @@ if (!question %in% VALID_QUESTIONS) {
 }
 message("Question: ", question)
 
-# --- 0. GPU Configuration ---
-# OpenCL device for Stan (RTX 4070 SUPER)
-options(cmdstanr_opencl_platform_id = 0)
-options(cmdstanr_opencl_device_id = 0)
+# --- Model specification -----------------------------------------------------
+# Priors MUST match python/fit.py. bambi uses Exponential(lam=1) on group-level
+# sds and Normal(0, 1.5) on the intercept; brms writes the same two as below.
+# A mismatch here silently invalidates the whole point of the comparison.
 
-# --- 1. Load Data ---
-message("\n[STEP 1/4] Loading cleaned ANES 2024 data...")
-data_path <- file.path("data", "cleaned", paste0(question, ".csv"))
-if (!file.exists(data_path)) {
-  stop("Cleaned data not found: ", data_path,
-       "\nRun: Rscript R/process_anes_2024.R")
-}
-survey_raw <- fread(data_path)
-
-# target_binary is written by process_anes_2024.R. Rows with no binary coding
-# (the excluded Likert midpoint on democracy_importance) drop out here.
-survey_clean <- survey_raw %>%
-  filter(!is.na(target_binary)) %>%
-  apply_canonical_levels()
-
-message(sprintf("  %d respondents, %d districts",
-                nrow(survey_clean), dplyr::n_distinct(survey_clean$cd)))
-
-# --- 2. Load Poststrat Frame ---
-message("\n[STEP 2/4] Loading poststratification frame...")
-poststrat_file <- file.path("data", "frames", "synthetic_frames_combined.rds")
-if (!file.exists(poststrat_file)) {
-  stop("Poststrat frame not found: ", poststrat_file,
-       "\nPort it from the platform repo (data/census_tables/) before fitting.")
-}
-poststrat_df <- readRDS(poststrat_file) %>%
-  standardize_poststrat_frame()
-
-# mister_p requires a GEOID column; 'cd' serves that purpose here.
-if (!"GEOID" %in% names(poststrat_df)) {
-  poststrat_df$GEOID <- poststrat_df$cd
-}
-
-# --- 3. Fit Model (GPU Accelerated) ---
-message("\n[STEP 3/4] Fitting Bayesian MRP model (GPU Accelerated)...")
 formula_mrp <- bf(
   target_binary ~ 1 + (1 | age_group) + (1 | sex) + (1 | race) + (1 | educ) +
-    (1 | region) + (1 | state) + (1 | cd)
+    (1 | region) + (1 | state)
 )
 
 priors <- c(
@@ -91,65 +64,136 @@ priors <- c(
   prior(exponential(1), class = "sd")
 )
 
-stan_tmp_dir <- file.path("models", "stan_tmp")
-dir.create(stan_tmp_dir, recursive = TRUE, showWarnings = FALSE)
+# --- 1. Load cleaned data ----------------------------------------------------
+data_path <- file.path("data", "cleaned", paste0(question, ".csv"))
+if (!file.exists(data_path)) {
+  stop("Cleaned data not found: ", data_path,
+       "\nRun: Rscript R/process_anes_2024.R")
+}
+
+survey_clean <- fread(data_path) %>%
+  filter(!is.na(target_binary)) %>%
+  apply_canonical_levels()
+
+message(sprintf("  %d respondents, %d states, %.1f%% positive",
+                nrow(survey_clean), dplyr::n_distinct(survey_clean$state),
+                100 * mean(survey_clean$target_binary)))
+
+# --- 2. Emit the Stan program (no fitting required) --------------------------
+stan_dir <- file.path("docs", "stan")
+dir.create(stan_dir, recursive = TRUE, showWarnings = FALSE)
+stan_path <- file.path(stan_dir, paste0(question, "_model.stan"))
+
+writeLines(
+  brms::stancode(formula_mrp, data = survey_clean,
+                 family = bernoulli(link = "logit"), prior = priors),
+  stan_path
+)
+message("\nStan program written to ", stan_path)
+
+data_spec <- brms::standata(formula_mrp, data = survey_clean,
+                            family = bernoulli(link = "logit"), prior = priors)
+message(sprintf("  N = %d, %d grouping factors",
+                data_spec$N, sum(grepl("^N_[0-9]+$", names(data_spec)))))
+
+if (!do_fit) {
+  message("\nPass --fit to also fit the model and compare against the JAX run.")
+  quit(status = 0)
+}
+
+# --- 3. Fit (rstan backend; cmdstanr is not installed on this machine) -------
+backend <- if (requireNamespace("cmdstanr", quietly = TRUE)) "cmdstanr" else "rstan"
+message("\nFitting with backend: ", backend,
+        if (backend == "rstan") "  (no OpenCL; this is a one-off validation fit)" else "")
+
 dir.create(file.path("models", "marketing"), recursive = TRUE, showWarnings = FALSE)
 
-tic("Model Fit")
 fit_mrp <- brm(
   formula = formula_mrp,
-  data = survey_clean,
-  family = bernoulli(link = "logit"),
-  prior = priors,
-  chains = 4,
-  iter = 2000,
-  warmup = 1000,
-  cores = 4,
-  backend = "cmdstanr",
-  opencl = opencl(c(0, 0)),
-  output_dir = stan_tmp_dir,
-  file = file.path("models", "marketing", paste0(question, "_mrp")),
-  file_refit = "always",
-  control = list(adapt_delta = 0.95, max_treedepth = 14),
-  seed = 42,
-  refresh = 100
+  data    = survey_clean,
+  family  = bernoulli(link = "logit"),
+  prior   = priors,
+  chains  = 4,
+  iter    = 3000,
+  warmup  = 1500,
+  cores   = 4,
+  backend = backend,
+  control = list(adapt_delta = 0.99, max_treedepth = 12),
+  seed    = 42,
+  refresh = 500
 )
-toc()
 
-# --- 4. Poststratification ---
-message("\n[STEP 4/4] Generating poststratified estimates...")
-source(file.path("R", "mister_p.R"))
+saveRDS(fit_mrp, file.path("models", "marketing", paste0(question, "_brms.rds")))
 
-tic("Poststrat (CD)")
-mrp_results_cd <- mister_p(
-  state = "all",
-  draws = 1000,
-  group_vars = "GEOID",
-  model = fit_mrp,
-  poststrat_table = poststrat_df,
-  n_cores = 8
-)
-toc()
+# --- 4. Compare against the bambi/NumPyro posterior --------------------------
+jax_path <- file.path("models", "marketing", paste0(question, "_mrp_summary_jax.csv"))
+if (!file.exists(jax_path)) {
+  message("\nNo JAX summary at ", jax_path, " -- skipping comparison.")
+  message("Run: python python/fit.py ", question)
+  quit(status = 0)
+}
 
-tic("Poststrat (State)")
-mrp_results_state <- mister_p(
-  state = "all",
-  draws = 1000,
-  group_vars = "state",
-  model = fit_mrp,
-  poststrat_table = poststrat_df,
-  n_cores = 8
-)
-toc()
+jax <- fread(jax_path) %>% rename(param_jax = V1)
 
-# --- 5. Export ---
-message("\nExporting results...")
-out_dir <- file.path("data", "estimates")
-dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+brms_draws <- posterior::summarise_draws(
+  fit_mrp, mean, sd, "rhat", "ess_bulk"
+) %>% as_tibble()
 
-fwrite(mrp_results_cd$summary,    file.path(out_dir, paste0(question, "_estimates_cd.csv")))
-fwrite(mrp_results_state$summary, file.path(out_dir, paste0(question, "_estimates_state.csv")))
+# brms and bambi name the same quantities differently:
+#   b_Intercept                  <-> Intercept
+#   sd_<factor>__Intercept       <-> 1|<factor>_sigma
+#   r_<factor>[<level>,Intercept] <-> 1|<factor>[<level>]
+to_jax_name <- function(v) {
+  dplyr::case_when(
+    v == "b_Intercept" ~ "Intercept",
+    stringr::str_detect(v, "^sd_.*__Intercept$") ~
+      paste0("1|", stringr::str_match(v, "^sd_(.*)__Intercept$")[, 2], "_sigma"),
+    stringr::str_detect(v, "^r_.*\\[.*,Intercept\\]$") ~
+      paste0("1|", stringr::str_match(v, "^r_([^\\[]+)\\[")[, 2],
+             "[", stringr::str_match(v, "\\[(.*),Intercept\\]$")[, 2], "]"),
+    TRUE ~ NA_character_
+  )
+}
 
-message("\nDone. Results saved to ", out_dir)
-message(sprintf("  - CD estimates: %d",    nrow(mrp_results_cd$summary)))
-message(sprintf("  - State estimates: %d", nrow(mrp_results_state$summary)))
+cmp <- brms_draws %>%
+  mutate(param_jax = to_jax_name(variable)) %>%
+  filter(!is.na(param_jax)) %>%
+  inner_join(jax %>% select(param_jax, mean_jax = mean, sd_jax = sd),
+             by = "param_jax") %>%
+  mutate(
+    diff = mean - mean_jax,
+    # difference in units of posterior sd -- the scale on which "the same
+    # posterior" is a meaningful claim
+    z = abs(diff) / pmax(sd_jax, 1e-9)
+  ) %>%
+  arrange(desc(z))
+
+val_dir <- file.path("docs", "validation")
+dir.create(val_dir, recursive = TRUE, showWarnings = FALSE)
+val_path <- file.path(val_dir, paste0(question, "_brms_vs_jax.csv"))
+fwrite(cmp %>% select(variable, param_jax, mean_brms = mean, mean_jax,
+                      sd_brms = sd, sd_jax, diff, z, rhat, ess_bulk),
+       val_path)
+
+message("\n=== brms (Stan) vs bambi (NumPyro) ===")
+message(sprintf("  %d parameters matched", nrow(cmp)))
+message(sprintf("  max |difference| = %.3f posterior sd", max(cmp$z)))
+message(sprintf("  max rhat = %.4f, min ess_bulk = %.0f",
+                max(cmp$rhat, na.rm = TRUE), min(cmp$ess_bulk, na.rm = TRUE)))
+print(cmp %>% select(variable, mean, mean_jax, sd_jax, z) %>% head(8))
+message("\nWritten to ", val_path)
+
+if (max(cmp$z) > 0.5) {
+  message("\nWARNING: divergence beyond MCMC noise. Check that priors still ",
+          "match python/fit.py -- exponential(1) on sd, normal(0, 1.5) on Intercept.")
+}
+
+# --- 5. Posterior predictive check (CLAUDE.md convergence criteria) ----------
+ppc_path <- file.path(val_dir, paste0(question, "_ppcheck.png"))
+png(ppc_path, width = 1200, height = 800, res = 150)
+print(pp_check(fit_mrp, ndraws = 100))
+invisible(dev.off())
+message("Posterior predictive check written to ", ppc_path)
+
+message("\nDone. This is a validation artifact -- python/fit.py remains the ",
+        "production path.")
