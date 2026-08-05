@@ -83,10 +83,8 @@ align-marketing-mrp/
 │   ├── build_poststrat_frame.R   # [todo] ACS poststratification frame construction
 │   └── poststratify.R            # [todo] aggregate posteriors onto frame, output estimates
 ├── python/
-│   ├── requirements.txt          # jax[cuda], numpyro, arviz
-│   ├── models.py                 # NumPyro model definitions (MRP specification)
-│   ├── fit.py                    # MCMC fitting script (GPU)
-│   └── export_posteriors.py      # export posterior draws to CSV/RDS for R
+│   ├── requirements.txt          # [built] jax[cuda12], numpyro, bambi, arviz, pyreadr
+│   └── fit.py                    # [built] fit on GPU + poststratify -> data/estimates/
 ├── data/
 │   ├── raw/                      # ANES 2024 source data (gitignored)
 │   ├── cleaned/                  # recoded survey data
@@ -234,9 +232,10 @@ Rscript R/poststratify.R               # aggregate posteriors, output estimates 
 Rscript R/run_marketing_mrp.R basic_facts
 
 # Python/JAX pipeline
-pip install -r python/requirements.txt  # install JAX with CUDA + NumPyro
-python python/fit.py --question 1       # fit model for question 1 on GPU
-python python/export_posteriors.py      # export draws for R poststratification
+pip install -r python/requirements.txt   # JAX with CUDA + NumPyro + bambi
+python python/fit.py basic_facts         # fit + poststratify on GPU  [works]
+python python/fit.py election_efficacy --include-cd
+python python/fit.py congress_approval --draws 400 --tune 400 --chains 2  # smoke test
 
 # Full pipeline
 bash run_all.sh                         # end-to-end: clean → fit → poststratify → output
