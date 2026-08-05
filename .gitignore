@@ -63,3 +63,7 @@ models/
 docs/*.pdf
 docs/*.html
 docs/*_files/
+
+# ACS poststratification frames are imported artifacts from the platform repo,
+# not products of this one. See docs/README.md.
+data/frames/*.rds

@@ -35,6 +35,19 @@ On a fresh machine, download them from the ANES 2024 Time Series Study data cent
 
 A free ANES account is required — the files are public but sit behind registration. The raw survey CSV comes from the same page; it belongs in `data/raw/` (also gitignored), not here.
 
+## The ACS poststratification frame
+
+`python/fit.py` step 4 needs the frame, which is an imported artifact from the platform repo rather than something this repo builds (until `R/build_poststrat_frame.R` exists). It is gitignored as `data/frames/*.rds`:
+
+```bash
+mkdir -p data/frames
+cp /mnt/R/demographai-platform/data/census_tables/synthetic_frames_combined.rds data/frames/
+```
+
+**The frame stacks two ACS vintages** — 2022 (222,560 cells, 256.5M people) and 2024 (187,193 cells, 340.8M). Poststratifying over both at once weights by a 597M "population," roughly twice the adult total, and silently blends the vintages. `python/fit.py` defaults to `--frame-year 2024` and prints which vintage it selected.
+
+**Anything else that touches this frame needs the same guard.** `R/build_poststrat_frame.R` and a future port of `mister_p.R` have no equivalent check today. The platform's own JAX script did not filter, so every poststratified estimate it produced carries this defect.
+
 ## Why the codebook matters more than it looks
 
 Response scales are **not** consistently oriented across ANES items. Two items in this project's history run in opposite directions:

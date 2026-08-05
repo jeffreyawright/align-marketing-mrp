@@ -187,6 +187,8 @@ What it actually does, and how it differs from this repo's spec:
 - **Re-recodes from the raw CSV** rather than reading `data/cleaned/`, so it carries its own copy of every recode — including the same `hispanic < 7` defect fixed in `R/process_anes_2024.R`. Read the cleaned CSVs instead; that removes the whole duplicate-recode bug class.
 - **Region mapping tests only row 0** (`df_clean['state'].iloc[0] in state_to_region`). If that row's state doesn't match, `region` silently stays numeric for the entire dataset.
 - **No survey weights** (`V240107a`) in either implementation. Defensible — poststratification substitutes for weighting — but record it as a choice in `docs/methodology.md`, not an accident.
+- **It poststratified over both ACS vintages at once.** The frame stacks 2022 and 2024; summing them gives a 597M "population," ~2x the adult total. Every estimate the platform script produced carries this. `python/fit.py --frame-year` guards it; `R/build_poststrat_frame.R` and any port of `mister_p.R` will need the same check. See `docs/README.md`.
+- **It collapsed draws to a posterior mean before writing cells**, so district-level credible intervals cannot be recovered from its outputs. `python/fit.py` aggregates per draw instead.
 
 Fitted variance components, which independently corroborate the ICC≈0 finding:
 
