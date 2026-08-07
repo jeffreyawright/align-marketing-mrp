@@ -179,6 +179,41 @@ commit; the flag is a published contract.
 lookup's columns, keys, or reliability rule breaks it — update it in the same
 commit.**
 
+## The app
+
+`app/app.R` walks a visitor through the lookup one attribute at a time: answer a
+question, then disclose state, age, sex, race, and education in turn, watching
+the estimate move. It reads the lookup CSVs and nothing else — no model, no
+refit, no stored user data.
+
+**Disclosure does not buy precision, and the app must not imply that it does.**
+Median `ci_width` runs 0.033 at the national level → 0.095 at two attributes →
+0.120 at five. A "precision meter" or any progress affordance that fills as the
+user discloses is a claim the screen disproves in real time. What disclosure buys
+is *specificity plus the disappearance of direct evidence*: `basic_facts` goes
+from 71% nationally to anywhere in 45–91% once personalized, and **86% of fully
+specified slices have zero matching ANES respondents**. That is the demo.
+
+Three things in the app exist for reasons that are not obvious from the code:
+
+- **The categorical `reliability` word is rendered only when the walk completes.**
+  The interval is shown numerically and as a band at every step — the widening is
+  the honest half of the story. But `social_trust` is `medium` or `low` on 79% of
+  its deep slices, so re-rendering the word each step reads as the app
+  progressively disclaiming its own answer. Do not fix that by moving the
+  thresholds; they are a published contract.
+- **The next step's choices are filtered to populated slices** (`choices_for`).
+  6,819 of 65,520 slices do not exist and the gaps start at three attributes, so
+  an unfiltered menu walks the user into a dead end exactly when the funnel has
+  promised a payoff.
+- **The question picker is a `conditionalPanel`, not a `renderUI`.** The
+  `question` input has to stay mounted; re-rendering it would fire its own change
+  observer, which resets the funnel, which re-renders it.
+
+`tests/verify_app.R` walks the full funnel for every question against two
+profiles — one with matching respondents, one with none — and pins all three
+behaviours above. Run it after any change to the app.
+
 ## Commands
 
 ```bash
