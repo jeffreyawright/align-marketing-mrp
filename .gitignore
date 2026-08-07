@@ -76,3 +76,6 @@ data/frames/*.rds
 # production estimates. They are one-off diagnostics; the findings that matter go
 # into docs/methodology.md, not into the repo as uninterpretable CSVs.
 data/estimates/*_no_*
+
+# Session handoff notes -- working state, not project documentation.
+HANDOFF.md
