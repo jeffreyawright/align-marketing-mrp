@@ -122,6 +122,7 @@ python/
   fit.py                 GPU fitting, poststratification, lookup table
 app/
   app.R                  Shiny demo of the progressive-disclosure funnel
+  manifest.json          R version and package pins for Posit Connect Cloud
 data/
   raw/                   ANES source data (not committed)
   cleaned/               recoded survey data, one file per question

@@ -48,7 +48,8 @@ align-marketing-mrp/
 │   ├── fit.py                    # GPU fit + poststrat + lookup -> data/estimates/
 │   └── requirements.txt
 ├── app/
-│   └── app.R                     # Shiny demo of the disclosure funnel
+│   ├── app.R                     # Shiny demo of the disclosure funnel
+│   └── manifest.json             # Connect Cloud dependency pin (generated)
 ├── data/
 │   ├── raw/                      # ANES source (gitignored, imported)
 │   ├── cleaned/                  # recoded survey data, one file per question
@@ -62,7 +63,8 @@ align-marketing-mrp/
 │   ├── stan/                     # generated Stan programs
 │   └── validation/               # cross-implementation checks
 ├── tests/
-│   └── verify_cleaned.sh         # drift check on cleaned data
+│   ├── verify_cleaned.sh         # drift check on cleaned data
+│   └── verify_app.R              # smoke test of the app's server reactives
 └── .gitignore
 ```
 
@@ -193,6 +195,10 @@ python python/fit.py basic_facts --exclude educ        # sensitivity; implies --
 
 # Demo the funnel against the lookup tables
 Rscript -e 'shiny::runApp("app")'
+Rscript tests/verify_app.R                         # server reactives, all four questions
+
+# Regenerate the Connect Cloud dependency pin (after changing app.R's packages)
+Rscript -e 'rsconnect::writeManifest(appDir = "app")'
 
 # Specification artifact and independent cross-check
 Rscript R/run_marketing_mrp.R basic_facts          # -> docs/stan/ (seconds, no fit)
@@ -201,6 +207,34 @@ Rscript R/run_marketing_mrp.R basic_facts --fit    # -> docs/validation/
 
 Raw ANES resolves in this order: `data/raw/`, `$ANES_2024_CSV`, then the local
 path under `/mnt/data/Surveys/` on Skidrow.
+
+## Deploying the app to Posit Connect Cloud
+
+Connect Cloud deploys from GitHub: repository, branch `main`, **primary file
+`app/app.R`**. It will not build without a `manifest.json`, which must sit either
+at the repository root or in the same directory as the primary file.
+
+**It lives in `app/`, not at the root, and that placement is load-bearing.**
+`writeManifest()` scans its `appDir` for dependencies. Pointed at the root it
+would pick up `R/run_marketing_mrp.R` and pull brms, cmdstanr, and rstan into the
+package list — a compile the app does not need and Connect Cloud is unlikely to
+survive. Scoped to `app/` the list is 42 CRAN packages, all from the shiny /
+ggplot2 / data.table trees.
+
+Regenerate it with `rsconnect::writeManifest(appDir = "app")` whenever `app.R`
+adds or drops a package, and commit the result.
+
+**The pinned R version is edited by hand after generating.** `"platform"` is set
+to the local R version, but Connect Cloud supports only 4.0.0 through 4.6.0
+(as of August 2026). This machine runs 4.6.1, so the value is stepped down to
+`4.6.0`. Check the ceiling again if a build fails on the R version:
+<https://docs.posit.co/connect-cloud/user/platform/r.html>
+
+The manifest's `files` list contains `app.R` alone. That is expected — git-backed
+deployment bundles the whole branch, and the app reaches its data through
+`../data/estimates`, which is why `data/estimates/` must stay committed. If a
+build ever fails with `No lookup tables found`, that assumption has changed and
+the app needs to move to the repository root.
 
 ## Critical rules
 
