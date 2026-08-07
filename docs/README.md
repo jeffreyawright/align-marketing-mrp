@@ -2,7 +2,7 @@
 
 Two kinds of thing live here:
 
-1. **Committed:** project documentation — `methodology.md`, convergence diagnostics, posterior summaries. Model objects themselves are gitignored (`models/`); their diagnostics belong here.
+1. **Committed:** project documentation — `methodology.md` (specification and rationale), `for-david.md` (the consumer-facing guide to `data/estimates/lookup_*.csv`), convergence diagnostics, posterior summaries. Model objects themselves are gitignored (`models/`); their diagnostics belong here.
 2. **Not committed:** ANES reference material. These are large public binaries, so `.gitignore` excludes `docs/*.pdf`, `docs/*.html`, and `docs/*_files/`. **Import them as an installation step.**
 
 ## Reference material to import
@@ -57,4 +57,4 @@ V241327 ASCENDS   1 = Not important at all  ... 5 = Extremely important
 V242180 DESCENDS  1 = Extremely important   ... 5 = Not at all important
 ```
 
-Any recode written from memory or copied between items has a good chance of being exactly inverted, and an inverted binary outcome produces a model that fits cleanly and means the opposite of what you think. Check the codebook for every new item. See "Two traps" in `CLAUDE.md`.
+Any recode written from memory or copied between items has a good chance of being exactly inverted, and an inverted binary outcome produces a model that fits cleanly and means the opposite of what you think. Check the codebook for every new item. See "Critical rules" in `CLAUDE.md`.

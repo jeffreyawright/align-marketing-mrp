@@ -31,16 +31,19 @@ align-marketing-mrp/
 │   ├── utils.R                   # canonical categories, CD formatting, frame std.
 │   └── run_marketing_mrp.R       # Stan spec artifact + brms cross-check
 ├── python/
-│   ├── fit.py                    # GPU fit + poststratification -> data/estimates/
+│   ├── fit.py                    # GPU fit + poststrat + lookup -> data/estimates/
 │   └── requirements.txt
+├── app/
+│   └── app.R                     # Shiny demo of the disclosure funnel
 ├── data/
 │   ├── raw/                      # ANES source (gitignored, imported)
 │   ├── cleaned/                  # recoded survey data, one file per question
 │   ├── frames/                   # ACS frame (gitignored, imported)
-│   └── estimates/                # district and state estimates (output)
+│   └── estimates/                # district, state, lookup estimates (committed)
 ├── models/                       # fitted artifacts (gitignored)
 ├── docs/
 │   ├── methodology.md            # specification, decisions, limitations
+│   ├── for-david.md              # consumer guide to the lookup tables
 │   ├── README.md                 # reference material to import
 │   ├── stan/                     # generated Stan programs
 │   └── validation/               # cross-implementation checks
@@ -116,6 +119,33 @@ alpha_age = numpyro.deterministic("alpha_age", z_age * sigma_age)
 `python/fit.py` checks the first three and warns on failure. Use `arviz` in
 Python, `posterior` in R.
 
+## The lookup table
+
+`data/estimates/lookup_<question>.csv` is the artifact the marketing funnel
+actually consumes — the district and state files are secondary. `build_lookup()`
+poststratifies over every *subset* of state × age × sex × race × education, with
+`ALL` meaning "not yet disclosed", so a respondent disclosing attributes in any
+order always hits a precomputed row. 58,701 of a possible 65,520 slices are
+populated; all slices of two or fewer attributes exist, gaps start at three.
+
+**It is not a second model.** Same posterior, same frame, same per-draw
+aggregation as §5 of the methodology — only the grouping key changes. Never refit
+for it.
+
+**`n_survey` is reported, not used.** It counts matching ANES respondents so a
+consumer can see the direct evidence thin out while the estimate holds. It is not
+an input to the estimate.
+
+**`reliability` thresholds are absolute** (`ci_width` < 0.10 high, < 0.20 medium,
+else low), so the flag means different things at a 71% base rate than at 20%.
+`election_efficacy` is mostly `medium` past one attribute. Documented in
+`docs/methodology.md` §9; do not retune without refitting and updating both that
+section and `docs/for-david.md`.
+
+`docs/for-david.md` is the consumer-facing contract for this file. **Changing the
+lookup's columns, keys, or reliability rule breaks it — update it in the same
+commit.**
+
 ## Commands
 
 ```bash
@@ -123,10 +153,15 @@ Python, `posterior` in R.
 Rscript R/process_anes_2024.R            # raw ANES -> data/cleaned/
 tests/verify_cleaned.sh                  # confirm the recode has not drifted
 
-# Fit + poststratify (production path)
+# Fit + poststratify + lookup (production path)
 pip install -r python/requirements.txt
 python python/fit.py basic_facts
 python python/fit.py congress_approval --draws 400 --tune 400 --chains 2  # smoke test
+python python/fit.py basic_facts --no-lookup           # stop after cd/state
+python python/fit.py basic_facts --exclude educ        # sensitivity; implies --no-lookup
+
+# Demo the funnel against the lookup tables
+Rscript -e 'shiny::runApp("app")'
 
 # Specification artifact and independent cross-check
 Rscript R/run_marketing_mrp.R basic_facts          # -> docs/stan/ (seconds, no fit)
@@ -147,6 +182,9 @@ path under `/mnt/data/Surveys/` on Skidrow.
 - **After changing the recode,** run `tests/verify_cleaned.sh --update` and commit the manifest with the change.
 - **JAX GPU setup:** `python -c "import jax; print(jax.devices())"` should show a GPU device before fitting.
 - **Model objects in `models/` are gitignored.** Commit diagnostics and summaries under `docs/` instead.
+- **`data/estimates/` is committed**, lookup tables included (~17 MB), because `docs/for-david.md` hands those exact paths to a consumer. Regenerating them changes tracked files — expect the diff.
+- **Raw survey percentages are not the estimates.** `docs/methodology.md` §2 quotes unweighted respondent counts (`basic_facts` 74.7%); the poststratified national figure is 71.3%. Only the latter describes the country. Never quote a §2 percentage externally, and never "reconcile" the two by changing one.
+- **Sensitivity runs must not overwrite production.** `--exclude` suffixes every output `_no_<factor>` and skips the lookup. Keep that if the flag changes.
 
 ## Where the GPU matters
 

@@ -42,6 +42,8 @@ CANONICAL = {
     "region":    ["Northeast", "Midwest", "South", "West", "DC"],
 }
 
+BASE_FACTORS = ["age_group", "sex", "race", "educ", "region", "state"]
+
 VALID_QUESTIONS = ["basic_facts", "election_efficacy", "congress_approval", "country_track"]
 
 
@@ -52,6 +54,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--include-cd", action="store_true",
                    help="add (1|cd). Off by default: sigma_state is 0.05-0.17, so the "
                         "cd term adds 435 weakly-identified parameters for little gain.")
+    p.add_argument("--exclude", nargs="*", default=[], choices=BASE_FACTORS,
+                   help="drop grouping factors from the model AND the poststratification "
+                        "(sensitivity testing). Dropping a factor marginalises it out of "
+                        "the frame, which is not the same as it being absent from the "
+                        "output -- every factor is already marginalised out of the "
+                        "per-district estimates.")
     p.add_argument("--frame", default=str(REPO / "data" / "frames" / "synthetic_frames_combined.rds"))
     p.add_argument("--frame-year", type=int, default=2024,
                    help="the frame stacks multiple ACS vintages; poststratifying over "
@@ -63,6 +71,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=1203)
     p.add_argument("--chunk", type=int, default=10_000, help="frame cells per GPU batch")
     p.add_argument("--no-poststrat", action="store_true", help="fit only, skip step 3")
+    p.add_argument("--no-lookup", action="store_true",
+                   help="skip the progressive-disclosure lookup table")
     return p.parse_args()
 
 
@@ -126,9 +136,12 @@ def load_frame(path: str, year: int, include_cd: bool) -> pd.DataFrame:
 def fit_model(df: pd.DataFrame, args: argparse.Namespace):
     import bambi as bmb
 
-    terms = ["1", "(1|age_group)", "(1|sex)", "(1|race)", "(1|educ)", "(1|region)", "(1|state)"]
+    factors = [f for f in BASE_FACTORS if f not in args.exclude]
     if args.include_cd:
-        terms.append("(1|cd)")
+        factors.append("cd")
+    terms = ["1"] + [f"(1|{f})" for f in factors]
+    if args.exclude:
+        print(f"  EXCLUDED: {', '.join(args.exclude)} (sensitivity run, not the production spec)")
     formula = "target_binary ~ " + " + ".join(terms)
     print(f"  formula: {formula}")
 
@@ -237,9 +250,84 @@ def poststratify(idata, frame: pd.DataFrame, factors: list[str],
     }).sort_values(group_col)
 
 
+LOOKUP_DIMS = ["state", "age_group", "sex", "race", "educ"]
+
+
+def build_lookup(idata, frame: pd.DataFrame, survey: pd.DataFrame, factors: list[str],
+                 chunk: int, seed: int) -> pd.DataFrame:
+    """One estimate per combination of demographics a user might have supplied.
+
+    The funnel discloses attributes progressively -- the user answers the poll,
+    then gives state, then age, and so on -- and each step should return a
+    tighter comparison. So every *subset* of the disclosure dimensions is
+    precomputed, with ALL standing for "not yet supplied", which covers every
+    path through the funnel in any order. Five dimensions give up to
+    52 x 14 x 3 x 6 x 5 = 65,520 slices; 58,701 are populated, the rest being
+    combinations with no population in the frame. Every slice of two or fewer
+    dimensions exists, so the realistic funnel path never misses -- but consumers
+    still need a fallback. The all-ALL row is the national figure.
+
+    n_survey is the number of ANES respondents actually falling in the slice.
+    It is reported because it is the honest measure of how thin the direct
+    evidence is -- and because a cell with 3 respondents and a stable estimate
+    is the clearest possible demonstration of what poststratification buys.
+    """
+    import itertools
+
+    dims = [d for d in LOOKUP_DIMS if d in factors]
+    frame = frame.copy()
+    for d in dims:
+        frame[d] = frame[d].astype(str)
+
+    out = []
+    t0 = time.time()
+    for r in range(len(dims) + 1):
+        for subset in itertools.combinations(dims, r):
+            if subset:
+                key = frame[list(subset)].agg("\x1f".join, axis=1)
+            else:
+                key = pd.Series(["ALL"] * len(frame), index=frame.index)
+            frame["_key"] = key
+            res = poststratify(idata, frame, factors, "_key", chunk, seed)
+
+            parts = (res["_key"].str.split("\x1f", expand=True)
+                     if subset else pd.DataFrame(index=res.index))
+            for i, d in enumerate(subset):
+                res[d] = parts[i]
+            for d in dims:
+                if d not in subset:
+                    res[d] = "ALL"
+
+            if subset:
+                counts = (survey.groupby(list(subset), observed=True).size()
+                          .rename("n_survey").reset_index())
+                for d in subset:
+                    counts[d] = counts[d].astype(str)
+                res = res.merge(counts, on=list(subset), how="left")
+                res["n_survey"] = res["n_survey"].fillna(0).astype(int)
+            else:
+                res["n_survey"] = len(survey)
+
+            out.append(res.drop(columns="_key"))
+
+    lookup = pd.concat(out, ignore_index=True)
+    lookup["ci_width"] = lookup["q975"] - lookup["q025"]
+    # Plain-language reliability, driven by interval width. Anything wider than
+    # 20 points should not be shown to a user as a personalised figure.
+    lookup["reliability"] = np.where(lookup["ci_width"] < 0.10, "high",
+                            np.where(lookup["ci_width"] < 0.20, "medium", "low"))
+    cols = dims + ["estimate", "sd", "q025", "q975", "ci_width",
+                   "reliability", "pop", "n_survey"]
+    lookup = lookup[cols].sort_values(dims).reset_index(drop=True)
+    print(f"  {len(lookup):,} slices built in {time.time() - t0:.1f}s "
+          f"({(lookup.reliability == 'low').mean() * 100:.0f}% flagged low reliability)")
+    return lookup
+
+
 def main() -> None:
     args = parse_args()
-    print(f"\n=== MRP: {args.question} ===")
+    suffix = ("_no_" + "_".join(args.exclude)) if args.exclude else ""
+    print(f"\n=== MRP: {args.question}{suffix} ===")
 
     print("\n[1/4] Loading cleaned survey data...")
     df = load_survey(args.question)
@@ -253,7 +341,7 @@ def main() -> None:
     summary = az.summary(idata)
     out_models = REPO / "models" / "marketing"
     out_models.mkdir(parents=True, exist_ok=True)
-    summary_path = out_models / f"{args.question}_mrp_summary_jax.csv"
+    summary_path = out_models / f"{args.question}{suffix}_mrp_summary_jax.csv"
     summary.to_csv(summary_path)
 
     max_rhat = summary["r_hat"].max()
@@ -273,7 +361,7 @@ def main() -> None:
 
     print("\n[4/4] Poststratifying...")
     frame = load_frame(args.frame, args.frame_year, args.include_cd)
-    factors = ["age_group", "sex", "race", "educ", "region", "state"]
+    factors = [f for f in BASE_FACTORS if f not in args.exclude]
     if args.include_cd:
         factors.append("cd")
 
@@ -281,10 +369,25 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     for group_col in ("cd", "state"):
         res = poststratify(idata, frame, factors, group_col, args.chunk, args.seed)
-        path = out_dir / f"{args.question}_estimates_{group_col}.csv"
+        path = out_dir / f"{args.question}{suffix}_estimates_{group_col}.csv"
         res.to_csv(path, index=False)
         print(f"  {group_col}: {len(res)} estimates, range "
               f"{100 * res['estimate'].min():.1f}-{100 * res['estimate'].max():.1f}% -> {path}")
+
+    if args.no_lookup or args.exclude:
+        print("\nDone.")
+        return
+
+    print("\n[5/5] Building progressive-disclosure lookup...")
+    lookup = build_lookup(idata, frame, df, factors, args.chunk, args.seed)
+    lookup_path = out_dir / f"lookup_{args.question}.csv"
+    lookup.to_csv(lookup_path, index=False)
+
+    nat = lookup[(lookup[LOOKUP_DIMS] == "ALL").all(axis=1)].iloc[0]
+    print(f"  national: {100 * nat['estimate']:.1f}% "
+          f"[{100 * nat['q025']:.1f}, {100 * nat['q975']:.1f}]  "
+          f"(n_survey {nat['n_survey']:,})")
+    print(f"  -> {lookup_path}")
 
     print("\nDone.")
 

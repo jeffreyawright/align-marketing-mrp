@@ -33,6 +33,30 @@ data/estimates/<question>_estimates_state.csv    # 51 states
 
 Columns: `estimate`, `sd`, `q025`, `q975`, `pop`.
 
+Plus a lookup table covering every combination of demographics a poll respondent
+might disclose — 58,701 slices of state × age × sex × race × education, with
+`ALL` meaning "not supplied":
+
+```
+data/estimates/lookup_<question>.csv
+```
+
+Columns: the five demographic keys, then `estimate`, `sd`, `q025`, `q975`,
+`ci_width`, `reliability`, `pop`, `n_survey`. This is the artifact the funnel
+consumes; [`docs/for-david.md`](docs/for-david.md) is the guide for using it and
+[`docs/methodology.md`](docs/methodology.md) §9 explains how it is built.
+
+National estimates:
+
+| Question | Estimate | 95% CI |
+|---|---|---|
+| `basic_facts` | 71.3% | 69.7 – 72.9 |
+| `election_efficacy` | 28.0% | 26.3 – 29.7 |
+| `congress_approval` | 19.6% | 18.2 – 21.1 |
+
+These are poststratified onto the ACS frame and differ from raw survey
+percentages quoted in `docs/methodology.md` §2, which are unweighted by design.
+
 ## Setup
 
 Requires R (≥ 4.4) and Python (≥ 3.11) with a CUDA-capable GPU.
@@ -55,15 +79,19 @@ Two inputs are not in the repository and must be imported first: the raw ANES
 # 1. Clean and recode the survey data -> data/cleaned/
 Rscript R/process_anes_2024.R
 
-# 2. Fit and poststratify -> data/estimates/
+# 2. Fit, poststratify, build the lookup -> data/estimates/
 python python/fit.py basic_facts
 python python/fit.py election_efficacy
 python python/fit.py congress_approval
+
+# 3. Optional: walk the funnel in a browser
+Rscript -e 'shiny::runApp("app")'
 ```
 
 Fitting takes roughly five minutes per question on an RTX 4070 SUPER.
 Poststratification — 187,193 frame cells by 6,000 posterior draws — takes about
-a second.
+a second. The lookup table repeats that aggregation once per demographic subset
+and is the longest step after the fit; `--no-lookup` skips it.
 
 Verify the survey processing is unchanged at any time:
 
@@ -79,14 +107,17 @@ R/
   utils.R                canonical demographic categories, CD formatting
   run_marketing_mrp.R    Stan specification artifact + brms cross-check
 python/
-  fit.py                 GPU fitting and poststratification
+  fit.py                 GPU fitting, poststratification, lookup table
+app/
+  app.R                  Shiny demo of the progressive-disclosure funnel
 data/
   raw/                   ANES source data (not committed)
   cleaned/               recoded survey data, one file per question
   frames/                ACS poststratification frame (not committed)
-  estimates/             final district and state estimates
+  estimates/             district, state, and lookup estimates
 docs/
   methodology.md         model specification, decisions, limitations
+  for-david.md           how to consume the lookup tables
   stan/                  generated Stan programs
   validation/            cross-implementation checks
 tests/

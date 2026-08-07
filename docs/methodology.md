@@ -181,6 +181,14 @@ consequence is that raw descriptive percentages in this document are unweighted
 and should not be quoted as national population estimates; the poststratified
 output in `data/estimates/` is the population-representative quantity.
 
+> The two figures differ visibly and both appear in this repository. On
+> `basic_facts` the §2 table reports **74.7%** (unweighted count of respondents)
+> while the national row of `data/estimates/lookup_basic_facts.csv` reports
+> **71.3%** (poststratified onto the 2024 ACS frame). The equivalents are 29.5 →
+> 28.0 for `election_efficacy` and 17.6 → 19.6 for `congress_approval`. The
+> poststratified figure is the one to quote externally. §2 percentages exist to
+> justify question selection, not to describe the country.
+
 **No district-level varying intercept.** The model stops at state. Fitted
 σ_state is 0.05–0.17 across items, and district-level clustering is
 indistinguishable from sampling noise, so a `(1|cd)` term would add 435
@@ -213,6 +221,16 @@ demographic-composition maps. Two districts with similar profiles receive simila
 estimates regardless of geography, and the method should not be expected to
 surface regional pockets.
 
+**And the map is largely an education map.** Refitting `basic_facts` without the
+education term (`python/fit.py basic_facts --exclude educ`) compresses the
+district spread from 11.2 points to 7.4 (SD across districts 1.91 → 1.56 points)
+and correlates with the production estimates at only r = 0.70. Education is
+therefore the single largest source of district-to-district differentiation in
+the output, not a marginal covariate. Two consequences: the estimates inherit
+whatever error the ACS frame carries in district-level educational composition,
+and any future change to the four education categories will move district
+rankings more than a change to any other dimension.
+
 **Estimates are time-anchored.** All three items are pre-election measures from
 2024. `election_efficacy` in particular is sensitive to which party holds power.
 
@@ -231,8 +249,14 @@ election returns has been performed.
 ```bash
 Rscript R/process_anes_2024.R          # survey -> data/cleaned/
 tests/verify_cleaned.sh                # confirm the recode is unchanged
-python python/fit.py <question>        # fit + poststratify -> data/estimates/
+python python/fit.py <question>        # fit + poststratify + lookup -> data/estimates/
 ```
+
+Two flags alter the last step. `--no-lookup` stops after the district and state
+estimates, skipping §9. `--exclude <factor> ...` drops grouping factors from both
+the model and the poststratification for sensitivity testing; it suffixes every
+output with `_no_<factor>` so a sensitivity run cannot overwrite production, and
+it implies `--no-lookup`.
 
 The survey recode is deterministic; `tests/verify_cleaned.sh` checks the cleaned
 files against a recorded manifest, so any unintended change to the processing is
@@ -251,3 +275,83 @@ probabilistic programming language, sampler implementation, and parameterization
 parameters agree to a median of 0.015 posterior standard deviations, maximum
 0.447. The single parameter above 0.3 is σ_sex, the unidentifiable one discussed
 in §6.
+
+---
+
+## 9. The progressive-disclosure lookup table
+
+The consuming application is a poll funnel: a respondent answers the question,
+sees the national figure, then discloses attributes one at a time and sees the
+comparison narrow. Every step must return an answer immediately, and the
+attributes arrive in no fixed order.
+
+So `python/fit.py` precomputes all of them. `build_lookup()` enumerates every
+*subset* of five disclosure dimensions — state, age group, sex, race, education —
+and poststratifies once per subset, with `ALL` denoting a dimension the user has
+not supplied. Output is `data/estimates/lookup_<question>.csv`, one row per
+answerable slice.
+
+**This is the same computation as §5, not a second model.** Each subset is a
+different grouping key over the same frame and the same 6,000 posterior draws,
+aggregated per draw exactly as district and state estimates are. The only reason
+it is a separate step is the number of groupings. Nothing is refit.
+
+### Size and coverage
+
+Five dimensions with 51, 13, 2, 5 and 4 levels give 52 × 14 × 3 × 6 × 5 = 65,520
+possible slices. **58,701 are populated**; the remaining 6,819 are combinations
+with no population in the frame.
+
+| Details supplied | Possible | Populated | Missing |
+|---|---|---|---|
+| 0 | 1 | 1 | 0 |
+| 1 | 75 | 75 | 0 |
+| 2 | 1,405 | 1,405 | 0 |
+| 3 | 9,765 | 9,549 | 216 |
+| 4 | 27,754 | 25,267 | 2,487 |
+| 5 | 26,520 | 22,404 | 4,116 |
+
+Every slice of two or fewer attributes exists, which is the region a real funnel
+occupies. Gaps begin at three and are concentrated at four and five. Consumers
+still need a fallback path — drop the last attribute and retry — but it will
+rarely fire.
+
+### `n_survey` is reported, and is not the estimate
+
+Each row carries `n_survey`, the count of ANES respondents falling in that slice.
+It is not an input to the estimate; the estimate comes from the model applied to
+the frame. It is included because it is the honest measure of how thin the direct
+evidence is, and because a slice with 7 respondents and a stable estimate is the
+clearest available demonstration of what poststratification buys. Any interface
+built on this file should display it.
+
+### The reliability flag and its limits
+
+`reliability` is a plain-language recode of `ci_width` = `q975 − q025`: `high`
+below 0.10, `medium` below 0.20, `low` above. Two properties matter to anyone
+building against it.
+
+**The thresholds are absolute, so the flag means different things per question.**
+A 10-point interval around `basic_facts`' 71% is a modest band; the same interval
+around `congress_approval`'s 20% is half the estimate. A relative-width rule would
+be more defensible and is the recommended revision.
+
+**`medium` dominates in practice.** Share of populated rows flagged `high`:
+
+| Details supplied | `basic_facts` | `election_efficacy` | `congress_approval` |
+|---|---|---|---|
+| 0 | 100% | 100% | 100% |
+| 1 | 97% | 91% | 96% |
+| 2 | 63% | 35% | 77% |
+| 3 | 41% | 12% | 52% |
+| 4 | 31% | 5% | 34% |
+| 5 | 26% | 2% | 22% |
+
+`election_efficacy` is the constraining case: past one attribute most of its rows
+are `medium`, and 8.4% of the file is `low`. This is not a defect in the lookup —
+it is the near-zero geographic variance of §7 showing up as interval width once
+slices get thin. An interface that suppresses everything below `high` will go
+silent on that question almost immediately; the intended handling is to present
+`medium` in approximate language.
+
+`docs/for-david.md` is the consumer-facing version of this section.

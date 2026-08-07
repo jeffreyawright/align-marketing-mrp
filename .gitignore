@@ -55,6 +55,10 @@ rsconnect/
 # Raw ANES source data never enters the repo; only cleaned/recoded data.
 data/raw/
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # Fitted model artifacts are large binaries. Commit diagnostics to docs/ instead.
 models/
 
@@ -67,3 +71,8 @@ docs/*_files/
 # ACS poststratification frames are imported artifacts from the platform repo,
 # not products of this one. See docs/README.md.
 data/frames/*.rds
+
+# Sensitivity runs (python/fit.py --exclude) write _no_<factor> outputs alongside
+# production estimates. They are one-off diagnostics; the findings that matter go
+# into docs/methodology.md, not into the repo as uninterpretable CSVs.
+data/estimates/*_no_*
