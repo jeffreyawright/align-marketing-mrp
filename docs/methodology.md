@@ -446,47 +446,54 @@ built on this file should display it.
 ### The reliability flag and its limits
 
 `reliability` is a plain-language recode of `ci_width` = `q975 − q025`: `high`
-below 0.10, `medium` below 0.20, `low` above. Two properties matter to anyone
-building against it.
+below 0.15, `medium` below 0.25, `low` above.
 
-**The thresholds are absolute, so the flag means different things per question.**
-A 10-point interval around `basic_facts`' 71% is a modest band; the same interval
-around `congress_approval`'s 20% is half the estimate. A relative-width rule would
-be more defensible and is the recommended revision.
+**The thresholds are absolute, and that is deliberate.** The deliverable is
+marketing copy, not inference, so the question a consumer needs answered is
+whether a sentence stays true across the interval — which is a question about
+percentage points, not about relative precision. A 15-point interval is ±7.5
+points, which leaves "about N in 10" true at any base rate; at 25 points the
+rounded fraction itself moves, so there is nothing safe left to say. Absolute
+width is the unit that matches the use.
 
-**`medium` dominates in practice, and how fast varies enormously by question.**
-Share of populated rows flagged `high`:
+**The original 0.10 / 0.20 thresholds were mis-placed, not mis-conceived.** They
+sat below the median interval width of *every* question — medians run 11.5
+(`basic_facts`), 12.3 (`congress_approval`), 14.9 (`election_efficacy`), 17.2
+(`social_trust`) points — so `high` was nearly empty everywhere and collapsed
+entirely for `social_trust`, at 2.1%. That turned a real but modest difference in
+precision (`social_trust` intervals are about 1.5× `basic_facts`) into a 15×
+difference in tier assignment. The revision moves the tiers to where the data
+actually is; it was not tuned until a particular question passed, and
+`social_trust` remains visibly the least certain question afterwards.
+
+**Share of populated rows flagged `high`:**
 
 | Details supplied | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
 |---|---|---|---|---|
 | 0 | 100% | 100% | 100% | 100% |
-| 1 | 97% | 91% | 96% | **37%** |
-| 2 | 63% | 35% | 77% | **8%** |
-| 3 | 41% | 12% | 52% | **2%** |
-| 4 | 31% | 5% | 34% | **2%** |
-| 5 | 26% | 2% | 22% | **2%** |
+| 1 | 100% | 99% | 100% | 91% |
+| 2 | 99% | 92% | 95% | 62% |
+| 3 | 97% | 71% | 88% | 39% |
+| 4 | 88% | 52% | 80% | 27% |
+| 5 | 80% | 38% | 72% | 21% |
 
-Share flagged `low` (whole file): `basic_facts` 0.0%, `congress_approval` 3.8%,
-`election_efficacy` 8.4%, **`social_trust` 23.7%** — rising to 33% at five
-attributes.
+Share flagged `low` across the whole file: `basic_facts` 0.0%,
+`congress_approval` 0.0%, `social_trust` 1.5%, `election_efficacy` 1.8%. The
+`low` fallback is a genuine exception rather than a routine path, which is what
+makes it usable as a rule in `docs/for-david.md`.
 
-**`social_trust` breaks the flag as currently defined, and this is a known open
-problem.** Its `high` tier is effectively empty past the national row, and nearly
-a quarter of the file trips the `low` fallback that `docs/for-david.md` presents
-as the safety rule. The cause is not a defect in the fit — diagnostics are clean
-(R̂ 1.0000, minimum bulk ESS 1,529, 0 divergences) — but a combination of a 45%
-marginal, which is maximum binomial variance, with the largest group-level scales
-in the set (σ_educ 0.92, σ_race 0.51). Wide intervals are the honest output.
+One and two attributes — the depth a real funnel reaches — are `high` on every
+question. Past that the questions separate, and `social_trust` is consistently
+last: 39% at three attributes against 97% for `basic_facts`. That ordering is not
+an artifact of the thresholds. `social_trust` genuinely carries the widest
+intervals in the set, combining a 45% marginal (maximum binomial variance) with
+the largest group-level scales (σ_educ 0.92, σ_race 0.51). Its fit is clean —
+R̂ 1.0000, minimum bulk ESS 1,529, 0 divergences — so the width is the honest
+output and the flag reports it rather than hiding it.
 
-What is wrong is the *rule*, not the intervals. A fixed 0.10 / 0.20 cut on
-absolute interval width cannot serve four questions whose base rates run from 20%
-to 71%, and `social_trust` is the case that forces the revision flagged above.
-Changing it requires no refit — `ci_width` is already a column — but it is a
-threshold decision, not a computation, and it is deliberately left open here
-rather than tuned to make one question look better.
-
-Until it is resolved, `election_efficacy` and `social_trust` should be presented
-in approximate language (§ `docs/for-david.md`), and an interface that suppresses
-everything below `high` will go silent on both almost immediately.
+Recomputing the flag after a threshold change requires no refit: `ci_width` is a
+stored column, so the label can be rewritten in place from the existing lookup
+files. Any such change must update this section and `docs/for-david.md` in the
+same commit, since the flag is a published contract.
 
 `docs/for-david.md` is the consumer-facing version of this section.

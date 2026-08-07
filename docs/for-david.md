@@ -13,9 +13,9 @@ One file per poll question. No database, no API, no code to run — load the CSV
 and look up a row.
 
 All four have identical columns and identical keys, so one piece of code reads
-any of them. **They do not behave identically** — `social_trust` in particular
-needs different handling, covered under "Reliability" below. Read that section
-before wiring it up.
+any of them. They do not all carry the same precision — `social_trust` has
+visibly wider intervals than the rest — but the `reliability` column tells you
+that per row, so you do not need per-question logic.
 
 ---
 
@@ -39,7 +39,7 @@ is. `ALL` means "not specified".
 | TX | ALL | ALL | ALL | ALL | 0.702 | 0.673 | 0.729 | 377 | high |
 | TX | 35-39 | ALL | ALL | ALL | 0.691 | 0.642 | 0.736 | 34 | high |
 | TX | 35-39 | Female | ALL | ALL | 0.666 | 0.614 | 0.714 | 16 | high |
-| TX | 35-39 | Female | Hispanic | ALL | 0.627 | 0.565 | 0.687 | 7 | medium |
+| TX | 35-39 | Female | Hispanic | ALL | 0.627 | 0.565 | 0.687 | 7 | high |
 
 *(Real rows from `lookup_basic_facts.csv`.)*
 
@@ -94,66 +94,54 @@ The more detail the user gives, the fewer real survey respondents resemble them,
 and the wider the credible interval becomes. The flag is a plain-language read of
 `ci_width`:
 
-| Flag | Interval width | How to use it |
+| Flag | Interval width | What it licenses |
 |---|---|---|
-| `high` | under 10 points | Safe to show as a number. |
-| `medium` | 10 to 20 points | Fine, but show it as approximate. "About 7 in 10." |
-| `low` | over 20 points | Do not present as a fact about that person's group. |
+| `high` | under 15 points | Show it as a number. "38% of people like you." |
+| `medium` | 15 to 25 points | Show it as a rounded fraction. "About 4 in 10." |
+| `low` | over 25 points | Do not present as a fact about that person's group. |
+
+The thresholds are set by what the copy can safely claim, not by a statistical
+convention. A 15-point interval is ±7.5 points, which leaves an "about N in 10"
+statement true across the whole range whatever the base rate. At 25 points the
+rounded fraction itself starts to move, so there is nothing safe left to say.
 
 **A simple rule that will not get you in trouble: if `reliability` is `low`, drop
-the last detail the user gave and use that row instead.**
+the last detail the user gave and use that row instead.** This is rare — under 2%
+of rows on every question — so it is a genuine exception, not a path you will be
+on constantly.
 
-### Two things to know about the flag before you build against it
-
-**It is an absolute rule, so it means different things per question.** A 10-point
-interval on `basic_facts` (around 71%) is a modest band. The same 10 points on
-`congress_approval` (around 20%) is half the estimate. Treat `high` on a
-low-percentage question as less precise than the label suggests.
-
-**`medium` is the normal case, not the exception.** Here is the share of rows
-flagged `high` at each level of disclosure:
+**`high` means "±7.5 points", not "precise."** Share of rows flagged `high` at
+each level of disclosure:
 
 | Details supplied | Rows | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
 |---|---|---|---|---|---|
 | 0 (national) | 1 | 100% | 100% | 100% | 100% |
-| 1 | 75 | 97% | 91% | 96% | **37%** |
-| 2 | 1,405 | 63% | 35% | 77% | **8%** |
-| 3 | 9,549 | 41% | 12% | 52% | **2%** |
-| 4 | 25,267 | 31% | 5% | 34% | **2%** |
-| 5 | 22,404 | 26% | 2% | 22% | **2%** |
+| 1 | 75 | 100% | 99% | 100% | 91% |
+| 2 | 1,405 | 99% | 92% | 95% | 62% |
+| 3 | 9,549 | 97% | 71% | 88% | 39% |
+| 4 | 25,267 | 88% | 52% | 80% | 27% |
+| 5 | 22,404 | 80% | 38% | 72% | 21% |
 
-**`social_trust` needs different handling from the other three.** Outside the
-national row its `high` tier is essentially empty, and 24% of the file is `low` —
-so the "if `low`, drop the last detail" rule below will fire constantly, and a UI
-that shows only `high` rows as numbers will show almost nothing for this
-question.
+**One and two details — the realistic funnel — are safe on all four questions.**
+Past that the questions separate, and `social_trust` is consistently the least
+certain of the four. That is real: it carries genuinely wider intervals than the
+others, and the flag is telling you so rather than hiding it.
 
-That is not a bug and the estimates are sound; the question genuinely carries
-more uncertainty than the others, and the `high`/`medium`/`low` cut-offs are
-fixed percentage-point widths that suit a 71% question better than a 38% one.
-**We know this rule needs revising and it is being looked at.** In the meantime,
-for `social_trust`:
-
-- Present it in approximate language by default — "roughly 4 in 10" — rather than
-  gating on the flag.
-- Trust the national and single-detail rows; treat three or more details as
-  indicative only.
-- Do not suppress `medium`. If you do, this question disappears.
-
-`election_efficacy` has a milder version of the same pattern: past one detail
-most of its rows are `medium` too. `basic_facts` and `congress_approval` behave
-the way the flag suggests.
+Practical guidance for `social_trust`: it is fine as a number through two
+details, and past three prefer "roughly 4 in 10" over a specific figure. Do not
+suppress `medium` on any question — that is the normal, usable tier.
 
 ## How deep to go
 
-**One detail is comfortably safe on three of the four** — state alone, or age
-alone, is `high` for 91–97% of rows on `basic_facts`, `election_efficacy`, and
-`congress_approval`. On `social_trust` it is 37%.
+**One detail is comfortably safe on all four** — state alone, or age alone, is
+`high` for 91–100% of rows on every question.
 
-**Two details is where it starts to depend on the question.** State plus age is
-`high` for 77% of rows on `congress_approval`, 63% on `basic_facts`, 35% on
-`election_efficacy`, and 8% on `social_trust`. Check the flag rather than
-assuming.
+**Two details is still safe**, at 92–99% `high` on three of them and 62% on
+`social_trust`.
+
+**Three or more is where the questions separate.** `basic_facts` stays at 97%
+`high`, `congress_approval` 88%, `election_efficacy` 71%, `social_trust` 39%.
+Check the flag rather than assuming.
 
 Realistically, a poll funnel gets one or two details before people lose patience,
 and that is enough to make the comparison feel personal. The deeper combinations

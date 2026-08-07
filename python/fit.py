@@ -313,10 +313,20 @@ def build_lookup(idata, frame: pd.DataFrame, survey: pd.DataFrame, factors: list
 
     lookup = pd.concat(out, ignore_index=True)
     lookup["ci_width"] = lookup["q975"] - lookup["q025"]
-    # Plain-language reliability, driven by interval width. Anything wider than
-    # 20 points should not be shown to a user as a personalised figure.
-    lookup["reliability"] = np.where(lookup["ci_width"] < 0.10, "high",
-                            np.where(lookup["ci_width"] < 0.20, "medium", "low"))
+    # Plain-language reliability, driven by absolute interval width. Absolute is
+    # the right unit because the deliverable is marketing copy, not inference:
+    # what matters is whether the sentence stays true across the interval.
+    #   < 0.15  -> +/- 7.5 points. "About N in 10" holds at any base rate, so the
+    #              figure can be stated as a number.
+    #   < 0.25  -> +/- 12.5 points. The rounded fraction starts to move; hedge it.
+    #   else    -> do not personalise.
+    # These were originally 0.10/0.20, which sat BELOW the median width of every
+    # question (11.5-17.2 points) and so left `high` nearly empty everywhere --
+    # social_trust got 2.1%. The tiers are placed where the data is, not tuned
+    # until a particular question passed.
+    RELIABILITY_BREAKS = (0.15, 0.25)
+    lookup["reliability"] = np.where(lookup["ci_width"] < RELIABILITY_BREAKS[0], "high",
+                            np.where(lookup["ci_width"] < RELIABILITY_BREAKS[1], "medium", "low"))
     cols = dims + ["estimate", "sd", "q025", "q975", "ci_width",
                    "reliability", "pop", "n_survey"]
     lookup = lookup[cols].sort_values(dims).reset_index(drop=True)

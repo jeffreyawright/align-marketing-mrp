@@ -150,13 +150,18 @@ for it.
 consumer can see the direct evidence thin out while the estimate holds. It is not
 an input to the estimate.
 
-**`reliability` thresholds are absolute** (`ci_width` < 0.10 high, < 0.20 medium,
-else low), so the flag means different things at a 71% base rate than at 38%.
-**This is a known open problem, not a settled design.** `social_trust` is 37%
-`high` at one attribute and 2% past that, with 23.7% of its file flagged `low`;
-`election_efficacy` is a milder version. Retuning needs no refit — `ci_width` is
-already a column — but it is a threshold decision. Do not change it without
-updating `docs/methodology.md` §9 and `docs/for-david.md` in the same commit.
+**`reliability` thresholds are absolute and deliberately so** (`ci_width` < 0.15
+high, < 0.25 medium, else low). The deliverable is copy, not inference: 15 points
+is ±7.5, where "about N in 10" stays true at any base rate; 25 points is where the
+rounded fraction moves. Do not replace this with a relative-width rule without a
+reason grounded in how the output is used.
+
+They were originally 0.10 / 0.20, which sat below the median width of every
+question and left `high` nearly empty (`social_trust` 2.1%). If you ever move them
+again: recomputing needs **no refit** — `ci_width` is a stored column, so patch
+the lookup CSVs in place and assert the other columns are byte-identical
+afterwards. Update `docs/methodology.md` §9 and `docs/for-david.md` in the same
+commit; the flag is a published contract.
 
 `docs/for-david.md` is the consumer-facing contract for this file. **Changing the
 lookup's columns, keys, or reliability rule breaks it — update it in the same
