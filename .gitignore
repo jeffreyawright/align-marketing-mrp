@@ -40,10 +40,42 @@ vignettes/*.pdf
 .Renviron
 
 # pkgdown site
-docs/
+# NOTE: disabled. This project uses docs/ for methodology.md and convergence
+# diagnostics, which CLAUDE.md requires to be committed. Re-enable only if
+# pkgdown is ever added, and then scope it to the generated subdirectory.
+# docs/
 
 # translation temp files
 po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# --- Project-specific ---
+# Raw ANES source data never enters the repo; only cleaned/recoded data.
+data/raw/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Fitted model artifacts are large binaries. Commit diagnostics to docs/ instead.
+models/
+
+# ANES reference PDFs/codebooks are large public binaries -- fetch them locally
+# rather than committing. See docs/README.md for what to import and from where.
+docs/*.pdf
+docs/*.html
+docs/*_files/
+
+# ACS poststratification frames are imported artifacts from the platform repo,
+# not products of this one. See docs/README.md.
+data/frames/*.rds
+
+# Sensitivity runs (python/fit.py --exclude) write _no_<factor> outputs alongside
+# production estimates. They are one-off diagnostics; the findings that matter go
+# into docs/methodology.md, not into the repo as uninterpretable CSVs.
+data/estimates/*_no_*
+
+# Session handoff notes -- working state, not project documentation.
+HANDOFF.md
