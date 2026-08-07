@@ -100,6 +100,16 @@ target_binary ~ 1 + (1|age_group) + (1|sex) + (1|race) + (1|educ)
 
 Bernoulli likelihood, logit link.
 
+**`(1|sex)` stays a varying intercept. Do not propose converting it to a fixed
+effect.** σ_sex is weakly identified from two groups and is the one parameter
+where brms and NumPyro disagree measurably — that is expected and settled, not a
+bug to fix. Partial pooling shrinks the two sex effects toward the grand mean,
+and that shrinkage is information a fixed effect discards; keeping the term
+varying also keeps every grouping factor written identically across
+implementations. Fitted sex effects are the smallest in the model (0.04–0.36
+logits) so the choice barely moves estimates anyway. Rationale in
+`docs/methodology.md` §6.
+
 **Priors — one specification, every implementation:** `exponential(1)` on
 group-level standard deviations, `normal(0, 1.5)` on the intercept. Do not
 substitute Half-Normal. `sigma_state` is ≈0.05, so the data is nearly

@@ -268,11 +268,30 @@ demographic composition within state. `python/fit.py --include-cd` enables the
 term for anyone who wants to test the decision; `loo_compare` on the brms fit
 would settle it formally.
 
-**Sex is modeled as a varying intercept, though it should not be.** A variance
-component cannot be identified from two groups: σ_sex has a posterior standard
-deviation at or above its mean, meaning it is prior-dominated. Modeling sex as a
-fixed effect is the correct treatment and is recommended for the next revision.
-The current specification is retained for comparability with prior fits.
+**Sex is modeled as a varying intercept, and stays that way.** A variance
+component is only weakly identified from two groups: σ_sex has a posterior
+standard deviation at or above its mean across all four questions (means
+0.60–1.07 against sds 0.84–0.96), meaning the prior does much of the work. A
+fixed effect would be the more efficient parameterization and is what a purely
+statistical reading recommends.
+
+It is not adopted here, deliberately. Partial pooling shrinks the two sex effects
+toward the grand mean, and that shrinkage is information a fixed-effect
+specification discards — with a weakly-identified component the pooled estimate
+is the more conservative one, not the degraded one. Keeping the term as a varying
+intercept also keeps the specification uniform: every grouping factor is written
+the same way in every implementation, which is worth more to a reader auditing
+`docs/stan/*.stan` than the efficiency gain is worth to the fit.
+
+The practical stakes are small either way. Fitted sex effects are the smallest in
+the model — the Male–Female difference is 0.36 logits on `basic_facts` and 0.04
+to 0.18 on the other three, against education effects reaching 0.92 — so the
+choice moves district estimates very little.
+
+The visible consequence is that σ_sex is the one parameter where the brms and
+NumPyro posteriors disagree measurably (§8). That is the expected signature of a
+prior-dominated parameter sampled two different ways, not a defect in either
+implementation, and not a reason to change the specification.
 
 **Missing districts are dropped, not imputed.** Respondents with no
 congressional district are excluded rather than assigned. String concatenation of
@@ -387,12 +406,13 @@ Differences are in units of posterior standard deviation. No question exceeds th
 0.5 threshold at which the script warns.
 
 **In all four, the single largest disagreement is σ_sex** — the variance
-component that cannot be identified from two groups (§6). That the two
-independent implementations agree to a median of ~0.02 posterior SD everywhere
-else, and diverge only on the one parameter known to be prior-dominated, is
-about as clean a cross-implementation result as this design admits. It also means
-the σ_sex problem is a property of the specification, not of either
-implementation.
+component only weakly identified from two groups (§6). That the two independent
+implementations agree to a median of ~0.02 posterior SD everywhere else, and
+diverge only on the one parameter known to be prior-dominated, is about as clean
+a cross-implementation result as this design admits. It confirms the σ_sex
+behaviour is a property of the specification rather than of either
+implementation — which is why §6 treats it as expected rather than as something
+to fix.
 
 ---
 
