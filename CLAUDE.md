@@ -1,6 +1,6 @@
 # align-marketing-mrp
 
-MRP (multilevel regression and poststratification) estimates of three ANES 2024
+MRP (multilevel regression and poststratification) estimates of four ANES 2024
 questions at congressional-district level, for marketing funnel targeting.
 GPU-accelerated Bayesian inference via JAX/NumPyro.
 
@@ -8,17 +8,31 @@ GPU-accelerated Bayesian inference via JAX/NumPyro.
 recode, or the question set.** It carries the decisions and their rationale.
 [`README.md`](README.md) is the user-facing entry point.
 
-## The three questions
+## The four questions
 
-| Short name | ANES | Coded 1 when |
-|---|---|---|
-| `basic_facts` | V241327 | Very / Extremely important |
-| `election_efficacy` | V241235 | A good deal |
-| `congress_approval` | V241127 | Approve |
+| Short name | ANES | Scale | Coded 1 when | D–R gap |
+|---|---|---|---|---|
+| `basic_facts` | V241327 | ascends | Very / Extremely important | 9.2 |
+| `election_efficacy` | V241235 | — | A good deal | 12.4 |
+| `congress_approval` | V241127 | — | Approve | 4.6 |
+| `social_trust` | V241234 | **descends** | Always / Most of the time | 7.6 |
 
-Selected for cross-partisan appeal — Dem–Rep gaps of 9.2, 12.4, and 4.6 points.
-`country_track` (V241117) is also processed to `data/cleaned/` but is not modeled;
-at a 38.9-point gap it is close to a proxy for party ID.
+Selected for cross-partisan appeal. `country_track` (V241117) is also processed
+to `data/cleaned/` but is not modeled; at a 38.9-point gap it is close to a proxy
+for party ID.
+
+`social_trust` was added after the original three and differs from them in ways
+that matter operationally: **its ANES scale descends** (1 = Always → 5 = Never),
+it is the only item not about government and the only one not anchored to 2024,
+it separates districts about twice as sharply as the others (27.7 points of CD
+spread), and its credible intervals are wide enough to break the `reliability`
+flag — see "The lookup table" below.
+
+**Rejected after fitting: V241579** ("political violence never justified"). It
+screened as the best candidate in the study on survey statistics, then came out
+at **−0.86** district correlation with `congress_approval`. Do not re-propose it.
+The general lesson is in `docs/methodology.md` §2: demographic-cell profiles do
+not predict district-level redundancy — only fitted district estimates do.
 
 ## Project structure
 
@@ -137,10 +151,12 @@ consumer can see the direct evidence thin out while the estimate holds. It is no
 an input to the estimate.
 
 **`reliability` thresholds are absolute** (`ci_width` < 0.10 high, < 0.20 medium,
-else low), so the flag means different things at a 71% base rate than at 20%.
-`election_efficacy` is mostly `medium` past one attribute. Documented in
-`docs/methodology.md` §9; do not retune without refitting and updating both that
-section and `docs/for-david.md`.
+else low), so the flag means different things at a 71% base rate than at 38%.
+**This is a known open problem, not a settled design.** `social_trust` is 37%
+`high` at one attribute and 2% past that, with 23.7% of its file flagged `low`;
+`election_efficacy` is a milder version. Retuning needs no refit — `ci_width` is
+already a column — but it is a threshold decision. Do not change it without
+updating `docs/methodology.md` §9 and `docs/for-david.md` in the same commit.
 
 `docs/for-david.md` is the consumer-facing contract for this file. **Changing the
 lookup's columns, keys, or reliability rule breaks it — update it in the same
@@ -155,7 +171,7 @@ tests/verify_cleaned.sh                  # confirm the recode has not drifted
 
 # Fit + poststratify + lookup (production path)
 pip install -r python/requirements.txt
-python python/fit.py basic_facts
+python python/fit.py basic_facts        # or election_efficacy | congress_approval | social_trust
 python python/fit.py congress_approval --draws 400 --tune 400 --chains 2  # smoke test
 python python/fit.py basic_facts --no-lookup           # stop after cd/state
 python python/fit.py basic_facts --exclude educ        # sensitivity; implies --no-lookup

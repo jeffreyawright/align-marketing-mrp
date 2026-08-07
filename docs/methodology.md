@@ -1,6 +1,6 @@
 # Methodology
 
-District-level opinion estimates for three ANES 2024 items, produced by
+District-level opinion estimates for four ANES 2024 items, produced by
 multilevel regression and poststratification.
 
 ---
@@ -48,8 +48,13 @@ the cleaned files.
 | `basic_facts` | V241327 | 4,857 | 74.7 | 80.5 | 55.4 | 71.4 | 9.2 | 22.5 |
 | `election_efficacy` | V241235 | 4,871 | 29.5 | 36.4 | 15.6 | 23.9 | 12.4 | 24.4 |
 | `congress_approval` | V241127 | 4,787 | 17.6 | 19.8 | 17.6 | 15.2 | **4.6** | 22.1 |
+| `social_trust` | V241234 | 4,875 | 45.1 | 50.3 | 23.7 | 42.7 | 7.6 | **34.1** |
 | *considered, not used:* `country_track` | V241117 | 4,841 | 24.8 | 44.2 | 12.7 | 5.2 | **38.9** | 22.0 |
 | *considered, not used:* `democracy_importance` | V242180 | 4,038 | 93.0 | 97.3 | 79.0 | 89.9 | 7.4 | 8.8 |
+
+Party identification is `V241227x` collapsed with leaners folded into their party
+(codes 1–3 Democrat, 4 pure Independent, 5–7 Republican). Pure Independents are
+kept separate because they are not the midpoint — see below.
 
 "Demographic range" is the spread in percent positive across age, race, and
 education groups — the variation that actually differentiates districts after
@@ -64,6 +69,42 @@ support district-level discrimination.
 
 `country_track` is still processed to `data/cleaned/` and remains available; it
 is simply not part of the modeled set.
+
+### `social_trust`, added after the original three
+
+V241234 (`TRUST_SOCTRUST`) — "Generally speaking, how often can you trust other
+people?", cut at *Always* / *Most of the time*. **The scale descends** (1 =
+Always → 5 = Never), the opposite of V241327; see §3.
+
+It was selected from a screen of the 2024 study's enduring-values items against
+three criteria the original three did not fully satisfy: a partisan gap below
+`basic_facts`, no dependence on a current issue or officeholder, and a construct
+outside the existing set. It is the only modeled item that is not about
+government — generalized social trust is the GSS construct asked since 1972 — and
+so the only one not anchored to the 2024 political context. At 45.1% raw it also
+sits closest to maximum binomial variance of any item tested, and its 34.1-point
+demographic range is the largest in the table.
+
+The 1–3 cut (adding *About half the time*) drops the partisan gap to 3.6 but
+raises the marginal to 73.7%, nearly duplicating `basic_facts` at 74.7% — the
+same neutrality-versus-variance trade reasoned through above, resolved the same
+way.
+
+**Screened and rejected: `V241579` (POLVIOL_JUSTIFIED, "political violence is
+never justified").** On survey statistics it was the strongest candidate found:
+a D–R gap of −1.2, the smallest Dem/Ind/Rep spread of any item tested, and a
+28.3-point demographic range. Fitted, its district estimates correlate **−0.86**
+with `congress_approval`. Race dominates both models (σ_race 0.63 and 0.74) with
+near-mirrored effects — White −0.49 against +0.74, Asian +0.52 against −0.55 — so
+the two district maps are inverted copies. As a targeting surface it added
+nothing to the set.
+
+That result is a methodological caution worth recording: **demographic-cell
+profile correlation did not predict district-level redundancy.** At cell level
+V241579 looked like the most distinct item screened (−0.25 against
+`congress_approval`); at district level it was the most redundant. Because
+district estimates are demographic-composition maps (§7), redundancy has to be
+judged on fitted district estimates, not on the survey cross-tabs.
 
 ### Two findings that shape interpretation
 
@@ -102,14 +143,19 @@ shift after a change in governing party.
 | `basic_facts` | 1 = Not important at all … 5 = Extremely important | 4, 5 | 1, 2, 3 |
 | `election_efficacy` | 1 = A good deal, 2 = Some, 3 = Not much | 1 | 2, 3 |
 | `congress_approval` | 1 = Approve, 2 = Disapprove | 1 | 2 |
+| `social_trust` | **1 = Always … 5 = Never** (descending) | 1, 2 | 3, 4, 5 |
 
-> **ANES importance scales are not consistently oriented.** V241327 ascends
-> (1 = Not important at all → 5 = Extremely important) while V242180 descends
-> (1 = Extremely important → 5 = Not at all important). Any recode that reuses a
-> single Likert rule across importance items will invert one of them. An
-> inverted binary outcome fits cleanly and means the opposite of what was
-> intended, so it will not be caught by convergence diagnostics. Check the
-> codebook per item.
+> **ANES scales are not consistently oriented, including within the modeled
+> set.** V241327 ascends (1 = Not important at all → 5 = Extremely important);
+> V241234 descends (1 = Always → 5 = Never); V242180 descends. Any recode that
+> reuses a single Likert rule across items will invert one of them. An inverted
+> binary outcome fits cleanly and means the opposite of what was intended, so it
+> will not be caught by convergence diagnostics. Check the codebook per item.
+>
+> The same hazard applies to *naming*. V241579 was screened under the name
+> `violence_never_justified` rather than `political_violence` precisely because
+> the latter would assert the opposite of what `target_binary = 1` stores. The
+> platform's old `gov_cares` recode made exactly that mistake.
 
 Negative ANES codes (refusal, don't know, inapplicable, no post-interview) are
 treated as missing throughout. The `hispanic` origin item is informative only for
@@ -135,9 +181,18 @@ generated Stan program in `docs/stan/` is the authoritative written form.
 draws), `target_accept = 0.99`.
 
 **Convergence criteria.** R̂ < 1.05, bulk and tail ESS > 400, divergences < 1% of
-post-warmup draws, and a visual posterior predictive check. Achieved for
-`basic_facts`: R̂ 1.0000, minimum bulk ESS 1,911, 0 of 6,000 divergences.
-Posterior predictive check in `docs/validation/`.
+post-warmup draws, and a visual posterior predictive check. Met by all four
+modeled questions:
+
+| Question | max R̂ | min bulk ESS | divergences |
+|---|---|---|---|
+| `basic_facts` | 1.0000 | 1,727 | 0 / 6,000 |
+| `election_efficacy` | 1.0000 | 1,185 | 0 / 6,000 |
+| `congress_approval` | 1.0000 | 1,318 | 0 / 6,000 |
+| `social_trust` | 1.0000 | 1,529 | 0 / 6,000 |
+
+Posterior predictive checks and the brms cross-comparison for each are in
+`docs/validation/`.
 
 ### Why `target_accept` is set so high
 
@@ -181,13 +236,27 @@ consequence is that raw descriptive percentages in this document are unweighted
 and should not be quoted as national population estimates; the poststratified
 output in `data/estimates/` is the population-representative quantity.
 
-> The two figures differ visibly and both appear in this repository. On
-> `basic_facts` the §2 table reports **74.7%** (unweighted count of respondents)
-> while the national row of `data/estimates/lookup_basic_facts.csv` reports
-> **71.3%** (poststratified onto the 2024 ACS frame). The equivalents are 29.5 →
-> 28.0 for `election_efficacy` and 17.6 → 19.6 for `congress_approval`. The
-> poststratified figure is the one to quote externally. §2 percentages exist to
-> justify question selection, not to describe the country.
+> The two figures differ visibly and both appear in this repository. The §2 table
+> reports unweighted counts of respondents; the national row of
+> `data/estimates/lookup_<question>.csv` reports the poststratified estimate.
+>
+> | Question | §2 raw | poststratified | shift |
+> |---|---|---|---|
+> | `basic_facts` | 74.7 | 71.3 | −3.4 |
+> | `election_efficacy` | 29.5 | 28.0 | −1.5 |
+> | `congress_approval` | 17.6 | 19.6 | +2.0 |
+> | `social_trust` | 45.1 | **37.8** | **−7.3** |
+>
+> The poststratified figure is the one to quote externally. §2 percentages exist
+> to justify question selection, not to describe the country.
+>
+> `social_trust` shifts more than twice as far as any other item, and the
+> direction is the expected one: its education gradient is the steepest in the
+> set (HS or less 28%, Postgrad 60% raw) and ANES over-represents the educated
+> relative to the ACS frame, so reweighting pulls the estimate down. A large
+> shift is evidence poststratification is doing work, not evidence of a fault —
+> but it does mean the raw survey figure is a poor preview of the output for
+> steeply-graded items.
 
 **No district-level varying intercept.** The model stops at state. Fitted
 σ_state is 0.05–0.17 across items, and district-level clustering is
@@ -231,8 +300,32 @@ whatever error the ACS frame carries in district-level educational composition,
 and any future change to the four education categories will move district
 rankings more than a change to any other dimension.
 
-**Estimates are time-anchored.** All three items are pre-election measures from
-2024. `election_efficacy` in particular is sensitive to which party holds power.
+**How much the four questions overlap as targeting maps.** District estimates
+correlate as follows (436 CDs):
+
+| | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
+|---|---|---|---|---|
+| `basic_facts` | 1.00 | 0.11 | −0.26 | 0.72 |
+| `election_efficacy` | 0.11 | 1.00 | 0.43 | 0.01 |
+| `congress_approval` | −0.26 | 0.43 | 1.00 | −0.48 |
+| `social_trust` | 0.72 | 0.01 | −0.48 | 1.00 |
+
+District spread: `basic_facts` 11.2 points, `election_efficacy` 11.8,
+`congress_approval` 12.5, **`social_trust` 27.7**. `social_trust` discriminates
+between districts more than twice as strongly as any other item, which is what
+makes it useful for targeting despite its interval-width problem (§9). Its 0.72
+correlation with `basic_facts` is the largest overlap in the set — both are
+steeply education-graded in the same direction — so the two should be treated as
+partially redundant surfaces rather than independent signals.
+
+**Estimates are time-anchored — except one.** `basic_facts`,
+`election_efficacy`, and `congress_approval` are all pre-election 2024 measures
+tied to the political context of that moment; `election_efficacy` in particular
+is sensitive to which party holds power, and `congress_approval` names a specific
+sitting Congress. `social_trust` is the exception: it asks nothing about
+government and has been asked in essentially this form since 1972, so it is the
+only item in the set that should be expected to survive a change of
+administration without reinterpretation.
 
 **Unweighted descriptive statistics.** See §6.
 
@@ -269,12 +362,37 @@ Rscript R/run_marketing_mrp.R <question>          # -> docs/stan/
 Rscript R/run_marketing_mrp.R <question> --fit    # + independent brms fit
 ```
 
+**The four generated Stan programs are byte-identical** (SHA-256
+`cffcebf9…`). That is structural rather than coincidental: formula, priors, and
+family are fixed, and the only per-question quantities — `N` and the level counts
+— live in `standata()`, not `stancode()`. One file would have sufficed; all four
+are kept so that a reader looking for a specific question finds it rather than
+inferring the equivalence. It also means the specification demonstrably does not
+vary by outcome, which is otherwise a claim a reviewer would have to take on
+faith.
+
 The `--fit` path fits the same specification through brms/Stan — a different
 probabilistic programming language, sampler implementation, and parameterization
-— and compares posteriors parameter by parameter. For `basic_facts`, 84
-parameters agree to a median of 0.015 posterior standard deviations, maximum
-0.447. The single parameter above 0.3 is σ_sex, the unidentifiable one discussed
-in §6.
+— and compares posteriors parameter by parameter. It has now been run for all
+four modeled questions:
+
+| Question | params | median \|Δ\| | max \|Δ\| | max-Δ parameter |
+|---|---|---|---|---|
+| `basic_facts` | 84 | 0.015 | 0.447 | σ_sex |
+| `election_efficacy` | 84 | 0.014 | 0.373 | σ_sex |
+| `congress_approval` | 84 | 0.016 | 0.399 | σ_sex |
+| `social_trust` | 84 | 0.021 | 0.395 | σ_sex |
+
+Differences are in units of posterior standard deviation. No question exceeds the
+0.5 threshold at which the script warns.
+
+**In all four, the single largest disagreement is σ_sex** — the variance
+component that cannot be identified from two groups (§6). That the two
+independent implementations agree to a median of ~0.02 posterior SD everywhere
+else, and diverge only on the one parameter known to be prior-dominated, is
+about as clean a cross-implementation result as this design admits. It also means
+the σ_sex problem is a property of the specification, not of either
+implementation.
 
 ---
 
@@ -336,22 +454,39 @@ A 10-point interval around `basic_facts`' 71% is a modest band; the same interva
 around `congress_approval`'s 20% is half the estimate. A relative-width rule would
 be more defensible and is the recommended revision.
 
-**`medium` dominates in practice.** Share of populated rows flagged `high`:
+**`medium` dominates in practice, and how fast varies enormously by question.**
+Share of populated rows flagged `high`:
 
-| Details supplied | `basic_facts` | `election_efficacy` | `congress_approval` |
-|---|---|---|---|
-| 0 | 100% | 100% | 100% |
-| 1 | 97% | 91% | 96% |
-| 2 | 63% | 35% | 77% |
-| 3 | 41% | 12% | 52% |
-| 4 | 31% | 5% | 34% |
-| 5 | 26% | 2% | 22% |
+| Details supplied | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
+|---|---|---|---|---|
+| 0 | 100% | 100% | 100% | 100% |
+| 1 | 97% | 91% | 96% | **37%** |
+| 2 | 63% | 35% | 77% | **8%** |
+| 3 | 41% | 12% | 52% | **2%** |
+| 4 | 31% | 5% | 34% | **2%** |
+| 5 | 26% | 2% | 22% | **2%** |
 
-`election_efficacy` is the constraining case: past one attribute most of its rows
-are `medium`, and 8.4% of the file is `low`. This is not a defect in the lookup —
-it is the near-zero geographic variance of §7 showing up as interval width once
-slices get thin. An interface that suppresses everything below `high` will go
-silent on that question almost immediately; the intended handling is to present
-`medium` in approximate language.
+Share flagged `low` (whole file): `basic_facts` 0.0%, `congress_approval` 3.8%,
+`election_efficacy` 8.4%, **`social_trust` 23.7%** — rising to 33% at five
+attributes.
+
+**`social_trust` breaks the flag as currently defined, and this is a known open
+problem.** Its `high` tier is effectively empty past the national row, and nearly
+a quarter of the file trips the `low` fallback that `docs/for-david.md` presents
+as the safety rule. The cause is not a defect in the fit — diagnostics are clean
+(R̂ 1.0000, minimum bulk ESS 1,529, 0 divergences) — but a combination of a 45%
+marginal, which is maximum binomial variance, with the largest group-level scales
+in the set (σ_educ 0.92, σ_race 0.51). Wide intervals are the honest output.
+
+What is wrong is the *rule*, not the intervals. A fixed 0.10 / 0.20 cut on
+absolute interval width cannot serve four questions whose base rates run from 20%
+to 71%, and `social_trust` is the case that forces the revision flagged above.
+Changing it requires no refit — `ci_width` is already a column — but it is a
+threshold decision, not a computation, and it is deliberately left open here
+rather than tuned to make one question look better.
+
+Until it is resolved, `election_efficacy` and `social_trust` should be presented
+in approximate language (§ `docs/for-david.md`), and an interface that suppresses
+everything below `high` will go silent on both almost immediately.
 
 `docs/for-david.md` is the consumer-facing version of this section.

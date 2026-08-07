@@ -5,10 +5,11 @@
 # Ported from: demographai-platform/r-scoring/process_anes_2024.R
 #
 # Emits one CSV per question to data/cleaned/:
-#   basic_facts.csv        (V241327 DEMNORMS_DEMFACTS)  -- marketing
-#   election_efficacy.csv  (V241235 RESPONS_ELECTCARE)  -- marketing
-#   congress_approval.csv  (V241127 CONGAPP_CONGJOB)    -- marketing
-#   country_track.csv      (V241117 EMOTION_TRACK)      -- validation fixture
+#   basic_facts.csv               (V241327 DEMNORMS_DEMFACTS)   -- marketing
+#   election_efficacy.csv         (V241235 RESPONS_ELECTCARE)   -- marketing
+#   congress_approval.csv         (V241127 CONGAPP_CONGJOB)     -- marketing
+#   social_trust.csv              (V241234 TRUST_SOCTRUST)      -- marketing
+#   country_track.csv             (V241117 EMOTION_TRACK)       -- validation fixture
 #
 # Each file carries the canonical demographics, the labeled response, and a
 # target_binary column. The label is retained so the binarization is always
@@ -94,8 +95,36 @@ MARKETING_QUESTIONS <- list(
     codes    = c("1" = "Approve", "2" = "Disapprove"),
     positive = 1L,   # Approve
     negative = 2L    # Disapprove
+  ),
+  social_trust = list(
+    anes_var = "social_trust",
+    anes_id  = "V241234",
+    question = "Generally speaking, how often can you trust other people?",
+    # !! DESCENDING scale -- the opposite of V241327 above. 1 is the MOST
+    # trusting response, 5 the least. Coding positive = c(1, 2) is correct;
+    # a shared "high code = endorsement" rule would invert this item exactly.
+    codes    = c("1" = "Always", "2" = "Most of the time",
+                 "3" = "About half the time", "4" = "Some of the time",
+                 "5" = "Never"),
+    # Generalized social trust, the GSS construct asked since 1972 -- the only
+    # item in the set that is not about government, and the least
+    # time-anchored. "About half the time" is a genuine midpoint here (unlike
+    # "Moderately important" on an importance scale), but scoring it as
+    # non-endorsement keeps the marginal at 45% rather than 74%, which is where
+    # the usable variance is. See docs/methodology.md sec 2.
+    positive = c(1L, 2L),
+    negative = c(3L, 4L, 5L)
   )
 )
+
+# Screened and rejected: V241579 POLVIOL_JUSTIFIED ("violence never justified").
+# On raw survey statistics it looked like the best complement in the 2024 study
+# -- Dem-Rep gap -1.2, the smallest Dem/Ind/Rep spread of any candidate, and a
+# 28.3-point demographic range. Fitted, its district estimates correlate -0.86
+# with congress_approval, because race dominates both models with near-mirrored
+# effects (White -0.49 vs +0.74, Asian +0.52 vs -0.55). As a targeting map it is
+# an inverted copy of a question already in the set. Cell-level demographic
+# profiles did NOT predict this; only the district estimates did.
 
 # Not a marketing question. country_track is the regression anchor for this
 # port: its output is byte-identical to the platform's shipped
@@ -133,6 +162,7 @@ anes24_raw <- fread(anes_csv_path) %>%
     basic_facts         = V241327,
     elections_attention = V241235,
     congress_job        = V241127,
+    social_trust        = V241234,
     # validation fixture
     right_track         = V241117
   )

@@ -1,25 +1,32 @@
 # align-marketing-mrp
 
-District-level estimates of American public opinion on three questions chosen for
+District-level estimates of American public opinion on four questions chosen for
 cross-partisan appeal, for use in marketing funnel targeting.
 
 Multilevel regression and poststratification (MRP) on ANES 2024 survey data,
 projected onto an ACS-derived population frame. GPU-accelerated Bayesian
 inference via JAX/NumPyro.
 
-## The three questions
+## The four questions
 
-| Short name | Question | Coded 1 when |
-|---|---|---|
-| `basic_facts` | "How important is it that people agree on basic facts even if they disagree politically?" | Very / Extremely important |
-| `election_efficacy` | "How much do you feel that having elections makes the government pay attention to what the people think?" | A good deal |
-| `congress_approval` | "Do you approve or disapprove of the way the U.S. Congress has been handling its job?" | Approve |
+| Short name | Question | Coded 1 when | D–R gap |
+|---|---|---|---|
+| `basic_facts` | "How important is it that people agree on basic facts even if they disagree politically?" | Very / Extremely important | 9.2 |
+| `election_efficacy` | "How much do you feel that having elections makes the government pay attention to what the people think?" | A good deal | 12.4 |
+| `congress_approval` | "Do you approve or disapprove of the way the U.S. Congress has been handling its job?" | Approve | 4.6 |
+| `social_trust` | "Generally speaking, how often can you trust other people?" | Always / Most of the time | 7.6 |
 
-All three were selected because they divide the public along lines other than
-party. The Democrat–Republican gap is 9.2, 12.4, and 4.6 points respectively —
-compared with 38.9 points for a "right direction / wrong track" item, which in
-2024 is close to a proxy for partisanship. See
+All four were selected because they divide the public along lines other than
+party — compared with 38.9 points for a "right direction / wrong track" item,
+which in 2024 is close to a proxy for partisanship. See
 [`docs/methodology.md`](docs/methodology.md) for the selection evidence.
+
+`social_trust` is the only item that is not about government, the only one not
+anchored to the 2024 political moment, and the one that separates districts most
+sharply (27.7 points of spread against 11–13 for the others). Its scale
+**descends** in the ANES coding — 1 = Always, 5 = Never — the opposite of
+`basic_facts`. It also carries visibly wider credible intervals; see
+[`docs/methodology.md`](docs/methodology.md) §9.
 
 ## Output
 
@@ -48,14 +55,18 @@ consumes; [`docs/for-david.md`](docs/for-david.md) is the guide for using it and
 
 National estimates:
 
-| Question | Estimate | 95% CI |
-|---|---|---|
-| `basic_facts` | 71.3% | 69.7 – 72.9 |
-| `election_efficacy` | 28.0% | 26.3 – 29.7 |
-| `congress_approval` | 19.6% | 18.2 – 21.1 |
+| Question | Estimate | 95% CI | Raw survey % |
+|---|---|---|---|
+| `basic_facts` | 71.3% | 69.7 – 72.9 | 74.7 |
+| `election_efficacy` | 28.0% | 26.3 – 29.7 | 29.5 |
+| `congress_approval` | 19.6% | 18.2 – 21.1 | 17.6 |
+| `social_trust` | 37.8% | 36.1 – 39.5 | 45.1 |
 
-These are poststratified onto the ACS frame and differ from raw survey
+These are poststratified onto the ACS frame and differ from the raw survey
 percentages quoted in `docs/methodology.md` §2, which are unweighted by design.
+`social_trust` shifts furthest because its education gradient is the steepest in
+the set and ANES over-represents the educated — the reweighting is doing exactly
+what it is there for.
 
 ## Setup
 
@@ -83,6 +94,7 @@ Rscript R/process_anes_2024.R
 python python/fit.py basic_facts
 python python/fit.py election_efficacy
 python python/fit.py congress_approval
+python python/fit.py social_trust
 
 # 3. Optional: walk the funnel in a browser
 Rscript -e 'shiny::runApp("app")'

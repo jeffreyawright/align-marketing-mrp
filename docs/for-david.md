@@ -1,15 +1,21 @@
 # Using the estimates
 
-Everything you need is in three CSV files:
+Everything you need is in four CSV files:
 
 ```
 data/estimates/lookup_basic_facts.csv
 data/estimates/lookup_election_efficacy.csv
 data/estimates/lookup_congress_approval.csv
+data/estimates/lookup_social_trust.csv
 ```
 
 One file per poll question. No database, no API, no code to run — load the CSV
 and look up a row.
+
+All four have identical columns and identical keys, so one piece of code reads
+any of them. **They do not behave identically** — `social_trust` in particular
+needs different handling, covered under "Reliability" below. Read that section
+before wiring it up.
 
 ---
 
@@ -60,6 +66,7 @@ the most robust number in the file and the one you will show most often.
 | `lookup_basic_facts` | 71.3% | 69.7 – 72.9 |
 | `lookup_election_efficacy` | 28.0% | 26.3 – 29.7 |
 | `lookup_congress_approval` | 19.6% | 18.2 – 21.1 |
+| `lookup_social_trust` | 37.8% | 36.1 – 39.5 |
 
 ## Looking up a row
 
@@ -106,28 +113,47 @@ low-percentage question as less precise than the label suggests.
 **`medium` is the normal case, not the exception.** Here is the share of rows
 flagged `high` at each level of disclosure:
 
-| Details supplied | Rows | `basic_facts` | `election_efficacy` | `congress_approval` |
-|---|---|---|---|---|
-| 0 (national) | 1 | 100% | 100% | 100% |
-| 1 | 75 | 97% | 91% | 96% |
-| 2 | 1,405 | 63% | 35% | 77% |
-| 3 | 9,549 | 41% | 12% | 52% |
-| 4 | 25,267 | 31% | 5% | 34% |
-| 5 | 22,404 | 26% | 2% | 22% |
+| Details supplied | Rows | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
+|---|---|---|---|---|---|
+| 0 (national) | 1 | 100% | 100% | 100% | 100% |
+| 1 | 75 | 97% | 91% | 96% | **37%** |
+| 2 | 1,405 | 63% | 35% | 77% | **8%** |
+| 3 | 9,549 | 41% | 12% | 52% | **2%** |
+| 4 | 25,267 | 31% | 5% | 34% | **2%** |
+| 5 | 22,404 | 26% | 2% | 22% | **2%** |
 
-`election_efficacy` is the one to watch: past a single detail, most of its rows
-are `medium`. If your UI only shows `high` rows as numbers, that question will go
-quiet almost immediately. Plan to show `medium` rows in approximate language
-rather than suppressing them.
+**`social_trust` needs different handling from the other three.** Outside the
+national row its `high` tier is essentially empty, and 24% of the file is `low` —
+so the "if `low`, drop the last detail" rule below will fire constantly, and a UI
+that shows only `high` rows as numbers will show almost nothing for this
+question.
+
+That is not a bug and the estimates are sound; the question genuinely carries
+more uncertainty than the others, and the `high`/`medium`/`low` cut-offs are
+fixed percentage-point widths that suit a 71% question better than a 38% one.
+**We know this rule needs revising and it is being looked at.** In the meantime,
+for `social_trust`:
+
+- Present it in approximate language by default — "roughly 4 in 10" — rather than
+  gating on the flag.
+- Trust the national and single-detail rows; treat three or more details as
+  indicative only.
+- Do not suppress `medium`. If you do, this question disappears.
+
+`election_efficacy` has a milder version of the same pattern: past one detail
+most of its rows are `medium` too. `basic_facts` and `congress_approval` behave
+the way the flag suggests.
 
 ## How deep to go
 
-**One detail is comfortably safe** — state alone, or age alone, is `high`
-reliability for 91–97% of rows on every question.
+**One detail is comfortably safe on three of the four** — state alone, or age
+alone, is `high` for 91–97% of rows on `basic_facts`, `election_efficacy`, and
+`congress_approval`. On `social_trust` it is 37%.
 
 **Two details is where it starts to depend on the question.** State plus age is
-`high` for 77% of rows on `congress_approval`, 63% on `basic_facts`, but only 35%
-on `election_efficacy`. Check the flag rather than assuming.
+`high` for 77% of rows on `congress_approval`, 63% on `basic_facts`, 35% on
+`election_efficacy`, and 8% on `social_trust`. Check the flag rather than
+assuming.
 
 Realistically, a poll funnel gets one or two details before people lose patience,
 and that is enough to make the comparison feel personal. The deeper combinations
@@ -140,7 +166,7 @@ The file has 58,701 rows out of a possible 65,520. The gaps are combinations tha
 essentially nobody in the country matches — a demographic profile with no
 population in that state.
 
-**Every combination of two or fewer details exists**, in all three files. So the
+**Every combination of two or fewer details exists**, in all four files. So the
 realistic funnel path — national, then state, then age — never misses. Gaps only
 start at three details and are concentrated at four and five.
 
@@ -151,7 +177,8 @@ retry. That is the same handling as a `low` reliability row.
 
 **They are model estimates, not survey tallies.** The survey has roughly 4,800
 respondents per question (4,857 for `basic_facts`, 4,871 for
-`election_efficacy`, 4,787 for `congress_approval`) — the `n_survey` value in the
+`election_efficacy`, 4,787 for `congress_approval`, 4,875 for `social_trust`) —
+the `n_survey` value in the
 all-`ALL` row of each file. There is no state with enough respondents to just count them
 directly — Wyoming has a handful. The model learns how age, sex, race,
 education, and state relate to the answer, then applies that to the actual
@@ -196,15 +223,23 @@ If anyone asks how it works, `docs/methodology.md` has the full specification;
 | `lookup_basic_facts` | "How important is it that people agree on basic facts even if they disagree politically?" | Very or Extremely important |
 | `lookup_election_efficacy` | "How much do you feel that having elections makes the government pay attention to what the people think?" | A good deal |
 | `lookup_congress_approval` | "Do you approve or disapprove of the way the U.S. Congress has been handling its job?" | Approve |
+| `lookup_social_trust` | "Generally speaking, how often can you trust other people?" | Always, or Most of the time |
 
 Use this wording in the poll. The estimates only mean what they mean because
 these are the exact questions that were asked.
+
+`social_trust` is the odd one out in a useful way: it is the only question that
+isn't about government, and the only one that won't need revisiting after an
+election — it has been asked in this form since 1972. It also separates districts
+about twice as sharply as the other three, so if you are picking one question to
+target on, it is the strongest signal. Its intervals are wider; see
+"Reliability".
 
 ## Seeing it work
 
 There is a small Shiny app in `app/` that walks the whole funnel — answer the
 poll, add details one at a time, watch the estimate move and the respondent count
-fall. It reads the same three CSVs and nothing else.
+fall. It reads the same lookup CSVs and nothing else.
 
 ```bash
 Rscript -e 'shiny::runApp("app")'

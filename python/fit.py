@@ -44,7 +44,8 @@ CANONICAL = {
 
 BASE_FACTORS = ["age_group", "sex", "race", "educ", "region", "state"]
 
-VALID_QUESTIONS = ["basic_facts", "election_efficacy", "congress_approval", "country_track"]
+VALID_QUESTIONS = ["basic_facts", "election_efficacy", "congress_approval",
+                   "social_trust", "country_track"]
 
 
 def parse_args() -> argparse.Namespace:
