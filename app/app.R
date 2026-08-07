@@ -39,6 +39,16 @@ QUESTIONS <- list(
     options = c("Approve", "Disapprove"),
     agree = c("Approve"),
     label = "approve of how Congress is handling its job"
+  ),
+  social_trust = list(
+    poll  = "Generally speaking, how often can you trust other people?",
+    # Displayed most-trusting first, matching the other items. Note this is the
+    # reverse of the ANES code order for V241234, which descends -- the app
+    # reads labels from the lookup file and never touches the codes.
+    options = c("Always", "Most of the time", "About half the time",
+                "Some of the time", "Never"),
+    agree = c("Always", "Most of the time"),
+    label = "say other people can usually be trusted"
   )
 )
 
@@ -65,13 +75,19 @@ AGES   <- c("18-24","25-29","30-34","35-39","40-44","45-49","50-54",
 #' Pull the single row matching a partially specified slice.
 #' Unsupplied dimensions are "ALL" — that is what makes progressive disclosure
 #' a lookup rather than a computation.
+#'
+#' Filtering is written as `d$col == arg` rather than data.table's `..arg`
+#' notation. The `..` prefix resolves a name from the calling scope for the `j`
+#' argument; used inside an `i` filter against columns of the same name it fails
+#' with "object '..educ' not found", which is what an earlier version did on
+#' every single call.
 slice_row <- function(q, state = "ALL", age = "ALL", sex = "ALL",
                       race = "ALL", educ = "ALL") {
   d <- LOOKUP[[q]]
-  r <- d[state == ..state & age_group == ..age & sex == ..sex &
-         race == ..race & educ == ..educ]
-  if (nrow(r) == 0) return(NULL)
-  r[1]
+  hit <- d$state == state & d$age_group == age & d$sex == sex &
+         d$race == race & d$educ == educ
+  if (!any(hit)) return(NULL)
+  d[which(hit)[1], ]
 }
 
 pct <- function(x) sprintf("%.0f%%", 100 * x)
