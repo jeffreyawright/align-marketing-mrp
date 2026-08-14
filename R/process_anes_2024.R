@@ -10,6 +10,7 @@
 #   congress_approval.csv         (V241127 CONGAPP_CONGJOB)     -- marketing
 #   social_trust.csv              (V241234 TRUST_SOCTRUST)      -- marketing
 #   country_track.csv             (V241117 EMOTION_TRACK)       -- validation fixture
+#   democracy_importance.csv      (V242180 IMP_DEMOC)           -- one-off demo bundle
 #
 # Each file carries the canonical demographics, the labeled response, and a
 # target_binary column. The label is retained so the binarization is always
@@ -142,6 +143,31 @@ VALIDATION_QUESTIONS <- list(
   )
 )
 
+# democracy_importance (V242180) was screened and set aside for the marketing
+# funnel per docs/methodology.md sec 2 -- 93% ceiling, only an 8.8-point
+# demographic range, and it is a post-election item that loses ~500
+# respondents to non-completion. Recoded here anyway at Jeff's explicit
+# request for a one-off demo bundle (2026-08-14); the exclusion rationale
+# still stands for the production marketing set and this entry should not be
+# read as reversing it.
+#
+# !! DESCENDS, same trap V242180 is called out for above: 1 = Extremely
+# important ... 5 = Not at all important. positive = c(1L, 2L) mirrors the
+# "Very or Extremely important" cut basic_facts uses on its ASCENDING scale
+# (there, positive = c(4L, 5L)) -- same cut point, opposite numeric codes.
+DEMO_ONLY_QUESTIONS <- list(
+  democracy_importance = list(
+    anes_var = "democracy_importance",
+    anes_id  = "V242180",
+    question = "How important is the following issue in the country today? Keeping the U.S. a democracy.",
+    codes    = c("1" = "Extremely important", "2" = "Very important",
+                 "3" = "Moderately important", "4" = "Slightly important",
+                 "5" = "Not at all important"),
+    positive = c(1L, 2L),
+    negative = c(3L, 4L, 5L)
+  )
+)
+
 # --- 3. Load and select ------------------------------------------------------
 
 anes24_raw <- fread(anes_csv_path) %>%
@@ -164,7 +190,9 @@ anes24_raw <- fread(anes_csv_path) %>%
     congress_job        = V241127,
     social_trust        = V241234,
     # validation fixture
-    right_track         = V241117
+    right_track         = V241117,
+    # one-off demo bundle
+    democracy_importance = V242180
   )
 
 cat("Raw respondents:", nrow(anes24_raw), "\n")
@@ -253,10 +281,11 @@ cat("Respondents with complete demographics:", nrow(complete_demo),
 
 summaries <- list()
 
-ALL_QUESTIONS <- c(MARKETING_QUESTIONS, VALIDATION_QUESTIONS)
+ALL_QUESTIONS <- c(MARKETING_QUESTIONS, VALIDATION_QUESTIONS, DEMO_ONLY_QUESTIONS)
 question_role <- c(
   setNames(rep("marketing",  length(MARKETING_QUESTIONS)),  names(MARKETING_QUESTIONS)),
-  setNames(rep("validation", length(VALIDATION_QUESTIONS)), names(VALIDATION_QUESTIONS))
+  setNames(rep("validation", length(VALIDATION_QUESTIONS)), names(VALIDATION_QUESTIONS)),
+  setNames(rep("demo_only",  length(DEMO_ONLY_QUESTIONS)),  names(DEMO_ONLY_QUESTIONS))
 )
 
 for (qname in names(ALL_QUESTIONS)) {
