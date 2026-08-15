@@ -82,3 +82,7 @@ data/estimates/*_no_*_estimates_*
 
 # Session handoff notes -- working state, not project documentation.
 HANDOFF.md
+
+# Credentials. CLAUDE.md: never commit .env files.
+.env
+app/.env
