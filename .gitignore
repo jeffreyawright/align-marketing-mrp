@@ -75,7 +75,10 @@ data/frames/*.rds
 # Sensitivity runs (python/fit.py --exclude) write _no_<factor> outputs alongside
 # production estimates. They are one-off diagnostics; the findings that matter go
 # into docs/methodology.md, not into the repo as uninterpretable CSVs.
-data/estimates/*_no_*
+# Anchored to fit.py's actual suffix pattern (`<question>_no_<factors>_estimates_
+# <group>.csv`) rather than a bare `*_no_*`, which also matched the legitimate
+# `no_say` question's own outputs (lookup_no_say.csv, no_say_estimates_*.csv).
+data/estimates/*_no_*_estimates_*
 
 # Session handoff notes -- working state, not project documentation.
 HANDOFF.md

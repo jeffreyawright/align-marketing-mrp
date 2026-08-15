@@ -70,6 +70,19 @@ support district-level discrimination.
 `country_track` is still processed to `data/cleaned/` and remains available; it
 is simply not part of the modeled set.
 
+**The `democracy_importance` row above uses a different cut than its funnel
+recode.** The screening row (n=4,038, 93.0%, gap 7.4) scores only *Extremely
+important* as positive and treats *Moderately important* as a dropped
+midpoint, matching the screen this table ran for every item. The funnel-role
+recode in `FUNNEL_QUESTIONS` (added later — see "The funnel question set"
+below) instead cuts *Extremely* + *Very important* positive and scores
+*Moderately important* as negative, the same pattern `basic_facts` uses on its
+ascending scale. That is why `data/cleaned/democracy_importance.csv` reports
+n=4,396, 85.5% raw, and a 10.1-point D–R gap, and the fitted poststrat is
+80.9% — three different numbers for one ANES item in this document, on
+purpose. Do not reconcile them by editing this row; the 93.0% screening figure
+is frozen to what motivated the original exclusion.
+
 ### `social_trust`, added after the original three
 
 V241234 (`TRUST_SOCTRUST`) — "Generally speaking, how often can you trust other
@@ -117,11 +130,22 @@ non-endorsement, trading some neutrality for usable variance (74.7% positive,
 9.2-point gap). Every response label is retained in `data/cleaned/`, so an
 alternative cut requires no reprocessing.
 
-**Independents are the outlier, not the middle.** On every item, pure
-Independents score *below both* partisan groups — `basic_facts` 55.4 against
-80.5 and 71.4. "Cross-partisan" here means these items appeal to committed
-partisans of both parties; the disengaged middle is where they land worst. A
-funnel aimed at persuadable independents should treat that as a caution.
+**Independents are the outlier, not the middle — on the four marketing items.**
+On each of `basic_facts`, `election_efficacy`, `congress_approval`, and
+`social_trust`, pure Independents score *below both* partisan groups —
+`basic_facts` 55.4 against 80.5 and 71.4. "Cross-partisan" here means these
+items appeal to committed partisans of both parties; the disengaged middle is
+where they land worst. A funnel aimed at persuadable independents should treat
+that as a caution. **This does not hold across the funnel set** (report-only
+D–R gap printout at recode time, `party` collapsed the same way): Independents
+land *above both* parties on `officials_dont_care` (90.7 against Dem 82.1 /
+Rep 86.2) and `no_say` (84.5 against 72.6 / 75.8), *between* the parties on
+`gov_few_interests` (80.2 against 77.8 / 89.2) and `country_offtrack` (87.3
+against 55.8 / 94.8), and *below both* on `democracy_importance` (64.0 against
+91.6 / 81.6, same shape as the marketing set). Independent position relative
+to the parties is item-specific, not a property of the item set as a whole —
+do not extend "every item" past the four marketing questions this finding was
+measured on.
 
 ### What `election_efficacy` measures
 
@@ -133,6 +157,19 @@ variable, mapping where disengaged-but-reachable populations are concentrated.
 It is a pre-election item, so estimates are anchored to the pre-November-2024
 context. External efficacy carries a well-documented winner–loser gap and will
 shift after a change in governing party.
+
+### The funnel question set
+
+`FUNNEL_QUESTIONS` in `R/process_anes_2024.R` (`country_offtrack`,
+`democracy_importance`, `gov_few_interests`, `officials_dont_care`, `no_say`)
+is a separate binary set selected for resonance — shared grievance or unifying
+value — not district discrimination, so the D–R gap is reported per item at
+recode time and never gates selection the way it does for the marketing four
+above. `country_offtrack` reuses `country_track`'s raw column (V241117) with
+the polarity flipped; the frozen `country_track` validation fixture is
+untouched. An ordinal upgrade for this set (cumulative-logit instead of a
+binary cut) is scoped but deferred — see
+[`docs/memory/funnel-ordinal-upgrade.md`](memory/funnel-ordinal-upgrade.md).
 
 ---
 

@@ -1,0 +1,56 @@
+# national_category_marginals.csv
+#
+# Design-weighted survey marginal (survey::svydesign + svymean), NOT a model
+# and NOT the poststratified headline. For each funnel + marketing question,
+# the full-category breakdown over the MRP-eligible sample (complete
+# demographics + district, matching data/cleaned/<question>.csv), weighted
+# with the ANES design (ids = PSU, strata = STRATUM, weights = full-sample
+# weight matching the item's field period).
+#
+# Weight caveat: PRE-election items (V241xxx) use V240107a; POST-election
+# items (V242xxx: democracy_importance, officials_dont_care, no_say) use
+# V240107b. This is a single-weight-per-item approximation, not a
+# multiply-imputed or panel-adjusted weight.
+#
+# Reconciliation caveat: this survey-weighted marginal will NOT equal the
+# poststratified headline (e.g. basic_facts 74.7% raw vs 71.3% poststrat --
+# see docs/methodology.md sec 2). That is expected. It is national COLOR, to
+# be presented as "nationally...", never as a decomposition of the
+# "people like you" number.
+#
+# Generated: Rscript R/national_category_marginals.R (2026-08-15)
+question,weight_used,category,proportion,se
+basic_facts,w_pre,A little important,0.0385,0.0043
+basic_facts,w_pre,Extremely important,0.3673,0.0109
+basic_facts,w_pre,Moderately important,0.2124,0.0097
+basic_facts,w_pre,Not important at all,0.0234,0.003
+basic_facts,w_pre,Very important,0.3584,0.0095
+election_efficacy,w_pre,A good deal,0.2897,0.0094
+election_efficacy,w_pre,Not much,0.2102,0.0084
+election_efficacy,w_pre,Some,0.5002,0.0102
+congress_approval,w_pre,Approve,0.188,0.0082
+congress_approval,w_pre,Disapprove,0.812,0.0082
+social_trust,w_pre,About half the time,0.304,0.0104
+social_trust,w_pre,Always,0.0099,0.0018
+social_trust,w_pre,Most of the time,0.4088,0.0113
+social_trust,w_pre,Never,0.0372,0.0035
+social_trust,w_pre,Some of the time,0.2401,0.0094
+country_offtrack,w_pre,Right direction,0.2208,0.0078
+country_offtrack,w_pre,Wrong track,0.7792,0.0078
+gov_few_interests,w_pre,For the benefit of all the people,0.1714,0.0072
+gov_few_interests,w_pre,Run by a few big interests,0.8286,0.0072
+democracy_importance,w_post,Extremely important,0.575,0.0107
+democracy_importance,w_post,Moderately important,0.0983,0.0076
+democracy_importance,w_post,Not at all important,0.0354,0.0041
+democracy_importance,w_post,Slightly important,0.0376,0.0039
+democracy_importance,w_post,Very important,0.2538,0.0095
+officials_dont_care,w_post,Agree somewhat,0.4138,0.0098
+officials_dont_care,w_post,Agree strongly,0.3055,0.0102
+officials_dont_care,w_post,Disagree somewhat,0.1076,0.0069
+officials_dont_care,w_post,Disagree strongly,0.0228,0.003
+officials_dont_care,w_post,Neither,0.1503,0.0079
+no_say,w_post,Agree somewhat,0.3627,0.0103
+no_say,w_post,Agree strongly,0.2811,0.0104
+no_say,w_post,Disagree somewhat,0.1647,0.0076
+no_say,w_post,Disagree strongly,0.0519,0.0047
+no_say,w_post,Neither,0.1396,0.0077

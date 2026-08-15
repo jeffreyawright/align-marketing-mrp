@@ -42,7 +42,9 @@ question <- if (length(args) >= 1) args[1] else "basic_facts"
 do_fit   <- "--fit" %in% args
 
 VALID_QUESTIONS <- c("basic_facts", "election_efficacy", "congress_approval",
-                     "social_trust", "country_track")
+                     "social_trust", "country_track",
+                     "country_offtrack", "democracy_importance",
+                     "gov_few_interests", "officials_dont_care", "no_say")
 if (!question %in% VALID_QUESTIONS) {
   stop("Unknown question: ", question,
        "\nExpected one of: ", paste(VALID_QUESTIONS, collapse = ", "))

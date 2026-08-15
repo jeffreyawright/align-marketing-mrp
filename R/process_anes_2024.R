@@ -10,7 +10,11 @@
 #   congress_approval.csv         (V241127 CONGAPP_CONGJOB)     -- marketing
 #   social_trust.csv              (V241234 TRUST_SOCTRUST)      -- marketing
 #   country_track.csv             (V241117 EMOTION_TRACK)       -- validation fixture
-#   democracy_importance.csv      (V242180 IMP_DEMOC)           -- one-off demo bundle
+#   country_offtrack.csv          (V241117 EMOTION_TRACK)       -- funnel
+#   democracy_importance.csv      (V242180 IMP_DEMOC)           -- funnel
+#   gov_few_interests.csv         (V241231 TRUSTGOV_BIGINTRST)  -- funnel
+#   officials_dont_care.csv       (V242200 EFFICPO_CARESTD)     -- funnel
+#   no_say.csv                    (V242201 EFFICPO_SAYSTD)      -- funnel
 #
 # Each file carries the canonical demographics, the labeled response, and a
 # target_binary column. The label is retained so the binarization is always
@@ -77,7 +81,7 @@ MARKETING_QUESTIONS <- list(
     negative = c(1L, 2L, 3L)
   ),
   election_efficacy = list(
-    anes_var = "elections_attention",
+    anes_var = "elections_attention",  # actually a political efficacy measure
     anes_id  = "V241235",
     question = "How much do you feel that having elections makes the government pay attention to what the people think?",
     codes    = c("1" = "A good deal", "2" = "Some", "3" = "Not much"),
@@ -143,19 +147,36 @@ VALIDATION_QUESTIONS <- list(
   )
 )
 
-# democracy_importance (V242180) was screened and set aside for the marketing
-# funnel per docs/methodology.md sec 2 -- 93% ceiling, only an 8.8-point
-# demographic range, and it is a post-election item that loses ~500
-# respondents to non-completion. Recoded here anyway at Jeff's explicit
-# request for a one-off demo bundle (2026-08-14); the exclusion rationale
-# still stands for the production marketing set and this entry should not be
-# read as reversing it.
-#
-# !! DESCENDS, same trap V242180 is called out for above: 1 = Extremely
-# important ... 5 = Not at all important. positive = c(1L, 2L) mirrors the
-# "Very or Extremely important" cut basic_facts uses on its ASCENDING scale
-# (there, positive = c(4L, 5L)) -- same cut point, opposite numeric codes.
-DEMO_ONLY_QUESTIONS <- list(
+# Funnel question set: binary items chosen for resonance (shared grievance or
+# unifying value), not district discrimination. Convention: `positive` is
+# always the resonant / shared class, so "% like you" reads toward the thing
+# the funnel rallies around. Report-only D-R gaps are printed below -- funnel
+# role selects on resonance and is not gated on them. See docs/methodology.md
+# sec 2 and the funnel-recode session notes.
+FUNNEL_QUESTIONS <- list(
+  # Shared-grievance sibling of the frozen VALIDATION_QUESTIONS$country_track
+  # fixture. SAME raw column (V241117), OPPOSITE direction -- do not alter
+  # country_track above.
+  country_offtrack = list(
+    anes_var = "right_track",
+    anes_id  = "V241117",
+    question = "Do you feel things have pretty seriously gotten off on the wrong track?",
+    codes    = c("1" = "Right direction", "2" = "Wrong track"),
+    positive = 2L,   # Wrong track -- the cross-partisan majority grievance
+    negative = 1L
+  ),
+  # Unifying opener. Screened and set aside for the marketing funnel per
+  # docs/methodology.md sec 2 -- 93% ceiling, only an 8.8-point demographic
+  # range, and a post-election item that loses ~500 respondents to
+  # non-completion. That exclusion rationale stands for the production
+  # marketing set; it does not disqualify this item at funnel role, where the
+  # high ceiling / low demographic range is the point -- unity, not
+  # personalization.
+  #
+  # !! DESCENDS: 1 = Extremely important ... 5 = Not at all important.
+  # positive = c(1L, 2L) mirrors the "Very or Extremely important" cut
+  # basic_facts uses on its ASCENDING scale (there, positive = c(4L, 5L)) --
+  # same cut point, opposite numeric codes.
   democracy_importance = list(
     anes_var = "democracy_importance",
     anes_id  = "V242180",
@@ -165,6 +186,37 @@ DEMO_ONLY_QUESTIONS <- list(
                  "5" = "Not at all important"),
     positive = c(1L, 2L),
     negative = c(3L, 4L, 5L)
+  ),
+  # System-capture grievance. Clean binary, PRE-election (no attrition). The
+  # sharpest "system is misaligned / needs reform" on-ramp of the set.
+  gov_few_interests = list(
+    anes_var = "few_interests",
+    anes_id  = "V241231",
+    question = "Is government run by a few big interests looking out for themselves, or for the benefit of all the people?",
+    codes    = c("1" = "Run by a few big interests", "2" = "For the benefit of all the people"),
+    positive = 1L,   # few big interests = the grievance
+    negative = 2L
+  ),
+  # External efficacy (responsiveness). POST-election. 3 = genuine neutral, so
+  # it is excluded from both positive and negative -> NA, same pattern as
+  # social_trust's midpoint above.
+  officials_dont_care = list(
+    anes_var = "officials_care",
+    anes_id  = "V242200",
+    question = "'Public officials don't care much what people like me think.'",
+    codes    = c("1" = "Agree strongly", "2" = "Agree somewhat", "3" = "Neither",
+                 "4" = "Disagree somewhat", "5" = "Disagree strongly"),
+    positive = c(1L, 2L),   # agree = officials don't care
+    negative = c(4L, 5L)
+  ),
+  no_say = list(
+    anes_var = "no_say",
+    anes_id  = "V242201",
+    question = "'People like me don't have any say about what the government does.'",
+    codes    = c("1" = "Agree strongly", "2" = "Agree somewhat", "3" = "Neither",
+                 "4" = "Disagree somewhat", "5" = "Disagree strongly"),
+    positive = c(1L, 2L),   # agree = no say
+    negative = c(4L, 5L)
   )
 )
 
@@ -184,6 +236,8 @@ anes24_raw <- fread(anes_csv_path) %>%
     race        = V241501x,
     education   = V241465x,
     age         = V241458x,
+    # party id, for report-only D-R gaps on the funnel set (see sec 2)
+    party_raw   = V241227x,
     # marketing funnel outcomes
     basic_facts         = V241327,
     elections_attention = V241235,
@@ -191,7 +245,10 @@ anes24_raw <- fread(anes_csv_path) %>%
     social_trust        = V241234,
     # validation fixture
     right_track         = V241117,
-    # one-off demo bundle
+    # funnel questions
+    few_interests        = V241231,
+    officials_care        = V242200,
+    no_say                = V242201,
     democracy_importance = V242180
   )
 
@@ -208,6 +265,16 @@ anes24_clean <- anes24_raw %>%
 
     # "ST-XX"; at-large -> "ST-00"; missing district stays NA (see format_cd)
     cd = format_cd(state, cd),
+
+    # Party ID, collapsed with leaners folded into their party (codes 1-3
+    # Democrat, 4 pure Independent, 5-7 Republican). Report-only, matches the
+    # D-R gap computation in docs/methodology.md sec 2.
+    party = case_when(
+      as.numeric(party_raw) %in% 1:3 ~ "Dem",
+      as.numeric(party_raw) == 4     ~ "Ind",
+      as.numeric(party_raw) %in% 5:7 ~ "Rep",
+      TRUE ~ NA_character_
+    ),
 
     # Sex (1 = Man, 2 = Woman)
     sex = case_when(
@@ -281,11 +348,11 @@ cat("Respondents with complete demographics:", nrow(complete_demo),
 
 summaries <- list()
 
-ALL_QUESTIONS <- c(MARKETING_QUESTIONS, VALIDATION_QUESTIONS, DEMO_ONLY_QUESTIONS)
+ALL_QUESTIONS <- c(MARKETING_QUESTIONS, VALIDATION_QUESTIONS, FUNNEL_QUESTIONS)
 question_role <- c(
   setNames(rep("marketing",  length(MARKETING_QUESTIONS)),  names(MARKETING_QUESTIONS)),
   setNames(rep("validation", length(VALIDATION_QUESTIONS)), names(VALIDATION_QUESTIONS)),
-  setNames(rep("demo_only",  length(DEMO_ONLY_QUESTIONS)),  names(DEMO_ONLY_QUESTIONS))
+  setNames(rep("funnel",     length(FUNNEL_QUESTIONS)),     names(FUNNEL_QUESTIONS))
 )
 
 for (qname in names(ALL_QUESTIONS)) {
@@ -302,11 +369,12 @@ for (qname in names(ALL_QUESTIONS)) {
     TRUE ~ NA_integer_
   )
 
+  keep <- !is.na(labels)
   q_df <- complete_demo %>%
     select(all_of(DEMO_COLS)) %>%
     mutate(!!qname := factor(labels, levels = unname(spec$codes)),
            target_binary = binary) %>%
-    filter(!is.na(.data[[qname]]))
+    filter(keep)
 
   out_path <- file.path(out_dir, paste0(qname, ".csv"))
   fwrite(q_df, out_path)
@@ -318,6 +386,21 @@ for (qname in names(ALL_QUESTIONS)) {
   cat("  districts covered:", dplyr::n_distinct(q_df$cd), "\n")
   print(q_df %>% count(.data[[qname]], target_binary))
   cat("  ->", out_path, "\n")
+
+  # Report-only D-R gap for the funnel set, same computation as
+  # docs/methodology.md sec 2. Never used to gate a funnel item.
+  if (question_role[[qname]] == "funnel") {
+    gap_df <- tibble(party = complete_demo$party[keep], target_binary = binary[keep]) %>%
+      filter(!is.na(party), !is.na(target_binary))
+    pct_by_party <- gap_df %>%
+      group_by(party) %>%
+      summarise(pct_positive = 100 * mean(target_binary), .groups = "drop")
+    dem_pct <- pct_by_party$pct_positive[pct_by_party$party == "Dem"]
+    rep_pct <- pct_by_party$pct_positive[pct_by_party$party == "Rep"]
+    d_r_gap <- if (length(dem_pct) && length(rep_pct)) round(dem_pct - rep_pct, 1) else NA_real_
+    cat("  D-R gap (report only, not a gate):", d_r_gap, "\n")
+    print(pct_by_party)
+  }
 
   summaries[[qname]] <- tibble(
     question = qname, role = question_role[[qname]], anes_var = spec$anes_id,
