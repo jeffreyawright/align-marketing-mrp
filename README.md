@@ -1,13 +1,19 @@
 # align-marketing-mrp
 
-District-level estimates of American public opinion on four questions chosen for
-cross-partisan appeal, for use in marketing funnel targeting.
+District-level estimates of American public opinion, for use in marketing
+funnel targeting. Two question sets are fit: **the marketing four**, chosen
+for cross-partisan appeal and demographic range; and **the funnel five**,
+chosen for resonance — shared grievance or a unifying value — to drive a
+progressive-disclosure poll flow. The funnel five are fit and their estimates
+are committed under `data/estimates/`, but the demo in `app/` currently walks
+only the marketing four; a rebuild around the funnel flow is planned but not
+yet done. See `docs/methodology.md` for both sets' selection evidence.
 
 Multilevel regression and poststratification (MRP) on ANES 2024 survey data,
 projected onto an ACS-derived population frame. GPU-accelerated Bayesian
 inference via JAX/NumPyro.
 
-## The four questions
+## The marketing four
 
 | Short name | Question | Coded 1 when | D–R gap |
 |---|---|---|---|
@@ -27,6 +33,26 @@ sharply (27.7 points of spread against 11–13 for the others). Its scale
 **descends** in the ANES coding — 1 = Always, 5 = Never — the opposite of
 `basic_facts`. It also carries visibly wider credible intervals; see
 [`docs/methodology.md`](docs/methodology.md) §9.
+
+## The funnel five
+
+| Short name | Question | Coded 1 when | D–R gap (report only) |
+|---|---|---|---|
+| `country_offtrack` | "Do you feel things have pretty seriously gotten off on the wrong track?" | Wrong track | −38.9 |
+| `democracy_importance` | "How important is keeping the U.S. a democracy?" | Very / Extremely important | 10.1 |
+| `gov_few_interests` | "Is government run by a few big interests, or for the benefit of all the people?" | A few big interests | −11.4 |
+| `officials_dont_care` | "Public officials don't care much what people like me think." | Agree | −4.2 |
+| `no_say` | "People like me don't have any say about what the government does." | Agree | −3.2 |
+
+Selected for resonance — shared grievance or a unifying value — rather than
+district discrimination, so the D–R gap is reported, not gated. These fit and
+poststratify the same way as the marketing four; their lookup tables are
+committed under `data/estimates/lookup_<question>.csv`. **`app/app.R` does not
+yet consume them** — the current demo walks only the marketing four. A
+funnel-flow rebuild of the demo is planned. See
+[`docs/methodology.md`](docs/methodology.md) "The funnel question set" for the
+full selection reasoning, including why `country_offtrack` shares a raw column
+with the frozen `country_track` validation fixture.
 
 ## Output
 
@@ -95,8 +121,14 @@ python python/fit.py basic_facts
 python python/fit.py election_efficacy
 python python/fit.py congress_approval
 python python/fit.py social_trust
+# funnel five (see "The funnel five" above; app/app.R does not consume these yet)
+python python/fit.py country_offtrack
+python python/fit.py democracy_importance
+python python/fit.py gov_few_interests
+python python/fit.py officials_dont_care
+python python/fit.py no_say
 
-# 3. Optional: walk the funnel in a browser
+# 3. Optional: walk the (marketing-four) demo in a browser
 Rscript -e 'shiny::runApp("app")'
 ```
 

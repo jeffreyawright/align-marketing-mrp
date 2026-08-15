@@ -1,14 +1,26 @@
 # align-marketing-mrp
 
-MRP (multilevel regression and poststratification) estimates of four ANES 2024
+MRP (multilevel regression and poststratification) estimates of ANES 2024
 questions at congressional-district level, for marketing funnel targeting.
-GPU-accelerated Bayesian inference via JAX/NumPyro.
+GPU-accelerated Bayesian inference via JAX/NumPyro. Two question sets are
+fit: **the marketing four** (below), selected for cross-partisan appeal with
+demographic range as a targeting criterion, and **the funnel five**
+(`docs/methodology.md` "The funnel question set"), selected for resonance —
+shared grievance or unifying value — to drive a progressive-disclosure poll
+flow rather than to discriminate districts.
 
 **Read [`docs/methodology.md`](docs/methodology.md) before changing the model, the
 recode, or the question set.** It carries the decisions and their rationale.
 [`README.md`](README.md) is the user-facing entry point.
 
-## The four questions
+**`app/app.R` currently walks only the marketing four.** The demo is planned
+to be rebuilt around the funnel five's progressive-grievance flow — that is
+the thing being pitched, not the four-question app as it stands today. Until
+that rebuild happens, treat `app/app.R` and `docs/for-david.md` as describing
+the *current* shipped demo, not the target one. Don't extend either as if the
+funnel set were already wired in.
+
+## The marketing four
 
 | Short name | ANES | Scale | Coded 1 when | D–R gap |
 |---|---|---|---|---|
@@ -34,6 +46,26 @@ at **−0.86** district correlation with `congress_approval`. Do not re-propose 
 The general lesson is in `docs/methodology.md` §2: demographic-cell profiles do
 not predict district-level redundancy — only fitted district estimates do.
 
+## The funnel five
+
+| Short name | ANES | Field period | Coded 1 when | D–R gap (report only) |
+|---|---|---|---|---|
+| `country_offtrack` | V241117 | PRE | Wrong track | −38.9 |
+| `democracy_importance` | V242180 | POST | Very / Extremely important | 10.1 |
+| `gov_few_interests` | V241231 | PRE | Run by a few big interests | −11.4 |
+| `officials_dont_care` | V242200 | POST | Agree officials don't care | −4.2 |
+| `no_say` | V242201 | POST | Agree no say in government | −3.2 |
+
+Selected for resonance, not district discrimination — the D–R gap is
+report-only here and never a gate. `country_offtrack` shares its raw column
+with the frozen `country_track` validation fixture, polarity flipped; do not
+alter `country_track`. Independents sit **above both parties** only on
+`officials_dont_care` (90.7 vs Dem 82.1 / Rep 86.2) and `no_say` (84.5 vs
+72.6 / 75.8) — not on the other three. Full detail, including the
+`democracy_importance` three-numbers-for-one-item note, is in
+`docs/methodology.md` "The funnel question set". An ordinal upgrade for this
+set is scoped but deferred — `docs/memory/funnel-ordinal-upgrade.md`.
+
 ## Project structure
 
 ```
@@ -48,7 +80,7 @@ align-marketing-mrp/
 │   ├── fit.py                    # GPU fit + poststrat + lookup -> data/estimates/
 │   └── requirements.txt
 ├── app/
-│   ├── app.R                     # Shiny demo of the disclosure funnel
+│   ├── app.R                     # Shiny demo, marketing four (funnel-five rebuild pending)
 │   └── manifest.json             # Connect Cloud dependency pin (generated)
 ├── data/
 │   ├── raw/                      # ANES source (gitignored, imported)

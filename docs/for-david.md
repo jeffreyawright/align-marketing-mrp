@@ -1,5 +1,16 @@
 # Using the estimates
 
+**This document describes the four questions currently wired into the demo
+app.** A second set — five items chosen for resonance (shared grievance or a
+unifying value) rather than district discrimination — is fit and its lookup
+tables are already committed (`data/estimates/lookup_country_offtrack.csv`,
+`lookup_democracy_importance.csv`, `lookup_gov_few_interests.csv`,
+`lookup_officials_dont_care.csv`, `lookup_no_say.csv`). The demo app is
+planned to be rebuilt around that funnel flow, but that rebuild has not
+happened yet — everything below still describes the four-question app as it
+stands today. Don't read this page as covering the funnel five; see
+`docs/methodology.md` "The funnel question set" for those.
+
 Everything you need is in four CSV files:
 
 ```
