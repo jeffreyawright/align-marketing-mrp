@@ -66,6 +66,25 @@ alter `country_track`. Independents sit **above both parties** only on
 `docs/methodology.md` "The funnel question set". An ordinal upgrade for this
 set is scoped but deferred — `docs/memory/funnel-ordinal-upgrade.md`.
 
+## Question roles
+
+`process_anes_2024.R` tags every question with a `question_role`, set once and
+carried through to the cleaned CSV header and console output:
+
+- **`marketing`** — the four research-grade targeting items (`MARKETING_QUESTIONS`).
+  Selected for cross-partisan appeal *and* district discrimination. Production
+  lookups, cross-checked against brms.
+- **`funnel`** — the five engagement-selected items (`FUNNEL_QUESTIONS`). Selected
+  for cross-partisan resonance and personalization punch, not for district
+  discrimination — D–R gap and district redundancy are reported but never gate
+  inclusion.
+- **`validation`** — `country_track` (`VALIDATION_QUESTIONS`), the frozen fixture
+  (positive = Right direction). Byte-identical output; exists solely to anchor
+  the recode against the platform's historical estimates. Do not alter it.
+
+The former `DEMO_ONLY_QUESTIONS` list (just `democracy_importance`) is retired —
+that item now lives in `FUNNEL_QUESTIONS` under `question_role = "funnel"`.
+
 ## Project structure
 
 ```
@@ -75,18 +94,28 @@ align-marketing-mrp/
 ├── R/
 │   ├── process_anes_2024.R       # ANES cleaning + recoding -> data/cleaned/
 │   ├── utils.R                   # canonical categories, CD formatting, frame std.
-│   └── run_marketing_mrp.R       # Stan spec artifact + brms cross-check
+│   ├── run_marketing_mrp.R       # Stan spec artifact + brms cross-check
+│   └── national_category_marginals.R  # design-weighted survey marginals -> data/estimates/
 ├── python/
 │   ├── fit.py                    # GPU fit + poststrat + lookup -> data/estimates/
 │   └── requirements.txt
 ├── app/
 │   ├── app.R                     # Shiny demo, marketing four (funnel-five rebuild pending)
 │   └── manifest.json             # Connect Cloud dependency pin (generated)
+├── demo/
+│   ├── index.html               # static funnel demo (bundle embedded inline)
+│   └── funnel_bundle.json       # curated slices for the demo (4 questions x 13 states)
+├── scripts/
+│   └── extract_funnel_bundle.py # builds demo/funnel_bundle.json from lookup CSVs
 ├── data/
 │   ├── raw/                      # ANES source (gitignored, imported)
 │   ├── cleaned/                  # recoded survey data, one file per question
 │   ├── frames/                   # ACS frame (gitignored, imported)
 │   └── estimates/                # district, state, lookup estimates (committed)
+│       ├── *_estimates_cd.csv      # per question (marketing + funnel)
+│       ├── *_estimates_state.csv
+│       ├── lookup_*.csv            # progressive-disclosure lookup (marketing + funnel)
+│       └── national_category_marginals.csv   # design-weighted survey marginals
 ├── models/                       # fitted artifacts (gitignored)
 ├── docs/
 │   ├── methodology.md            # specification, decisions, limitations
@@ -211,6 +240,20 @@ commit; the flag is a published contract.
 lookup's columns, keys, or reliability rule breaks it — update it in the same
 commit.**
 
+### National category marginals
+
+`data/estimates/national_category_marginals.csv` (built by
+`R/national_category_marginals.R`) gives the full-category design-weighted
+survey breakdown per question — "34% Extremely, 38% Very, …" — computed via
+`survey::svydesign` / `svymean`, **not** by the MRP model. It uses the
+PRE-election weight for PRE items and the POST weight for POST items.
+
+**Reconciliation caveat:** these survey-weighted marginals will not equal the
+poststratified headline (`basic_facts` 74.7% raw vs. 71.3% poststrat — see
+"Raw survey percentages are not the estimates" below). That is expected. They
+are national color for copy, never a decomposition of the "people like you"
+number.
+
 ## The app
 
 `app/app.R` walks a visitor through the lookup one attribute at a time: answer a
@@ -246,6 +289,31 @@ Three things in the app exist for reasons that are not obvious from the code:
 profiles — one with matching respondents, one with none — and pins all three
 behaviours above. Run it after any change to the app.
 
+## The funnel demo
+
+`demo/index.html` is a self-contained static HTML page — no server, no API
+call, no model, no stored data — that embeds `demo/funnel_bundle.json` inline.
+It implements the progressive-disclosure funnel for four curated funnel
+questions, in order: `democracy_importance`, `no_say`, `country_offtrack`,
+`gov_few_interests`. It is a bid demo for the client, not a production
+artifact — `officials_dont_care` is fitted but benched from it (see "The
+funnel question set" above).
+
+`scripts/extract_funnel_bundle.py` builds the bundle by reading the four
+lookup CSVs directly (no refit); it gates slices to `high`/`medium`
+reliability and curates 13 states (TX, CA, NY, FL, PA, OH, GA, AZ, WI, NC, MI,
+CO, VA). The bundle is **not** the full lookup table — it is an illustrative
+subset, sized under 500 KB. The full lookups remain the research-grade
+deliverable.
+
+## Phase 2: ordinal upgrade (deferred)
+
+The funnel questions are fitted as binary models. A cumulative (ordered)
+logit upgrade — per-category district estimates that sum to 1 by construction
+— is scoped but not started. Full spec in
+[`docs/memory/funnel-ordinal-upgrade.md`](docs/memory/funnel-ordinal-upgrade.md).
+Do not start it without a fresh session scoped to it.
+
 ## Commands
 
 ```bash
@@ -256,9 +324,14 @@ tests/verify_cleaned.sh                  # confirm the recode has not drifted
 # Fit + poststratify + lookup (production path)
 pip install -r python/requirements.txt
 python python/fit.py basic_facts        # or election_efficacy | congress_approval | social_trust
+python python/fit.py no_say                    # funnel item
+python python/fit.py officials_dont_care       # funnel item (benched from demo, still fitted)
 python python/fit.py congress_approval --draws 400 --tune 400 --chains 2  # smoke test
 python python/fit.py basic_facts --no-lookup           # stop after cd/state
 python python/fit.py basic_facts --exclude educ        # sensitivity; implies --no-lookup
+
+# National design-weighted category marginals (not the MRP model)
+Rscript R/national_category_marginals.R  # -> data/estimates/national_category_marginals.csv
 
 # Demo the funnel against the lookup tables
 Rscript -e 'shiny::runApp("app")'
@@ -274,6 +347,10 @@ Rscript R/run_marketing_mrp.R basic_facts --fit    # -> docs/validation/
 
 Raw ANES resolves in this order: `data/raw/`, `$ANES_2024_CSV`, then the local
 path under `/mnt/data/Surveys/` on Skidrow.
+
+`VALID_QUESTIONS` in both `python/fit.py` and `R/run_marketing_mrp.R` now lists
+all nine questions — the four marketing items, `country_track`, and the five
+funnel items.
 
 ## Deploying the app to Posit Connect Cloud
 
@@ -317,6 +394,7 @@ the app needs to move to the repository root.
 - **`data/estimates/` is committed**, lookup tables included (~17 MB), because `docs/for-david.md` hands those exact paths to a consumer. Regenerating them changes tracked files — expect the diff.
 - **Raw survey percentages are not the estimates.** `docs/methodology.md` §2 quotes unweighted respondent counts (`basic_facts` 74.7%); the poststratified national figure is 71.3%. Only the latter describes the country. Never quote a §2 percentage externally, and never "reconcile" the two by changing one.
 - **Sensitivity runs must not overwrite production.** `--exclude` suffixes every output `_no_<factor>` and skips the lookup. Keep that if the flag changes.
+- **`.gitignore`'s sensitivity-run pattern is anchored, not a bare wildcard:** `data/estimates/*_no_*_estimates_*`. It was narrowed from `*_no_*` because the broader glob accidentally matched `lookup_no_say.csv` and `no_say_estimates_*.csv` — legitimate production artifacts for the `no_say` funnel question, not sensitivity output. If a future question's short name contains `_no_`, verify its outputs aren't accidentally gitignored.
 
 ## Where the GPU matters
 
