@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MOVE/ALIGN — Where does the country actually stand?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1b2a41;
+    --ink-soft: #4a5b70;
+    --paper: #f7f4ee;
+    --paper-dim: #ece5d8;
+    --line: #d9d2c2;
+    --accent: #b4531f;
+    --accent-soft: #e5c8ae;
+    --dem: #3b5166;
+    --rep: #8b5a3c;
+    --ind: #c98a1e;
+    --radius: 14px;
+    --shadow: 0 6px 24px rgba(27, 42, 65, 0.10);
+    --maxw: 480px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h1, h2, h3, .display {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+  #app {
+    width: 100%;
+    max-width: var(--maxw);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 26px 20px 30px;
+    animation: fadein 420ms ease both;
+  }
+  @keyframes fadein {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .screen { animation: none !important; }
+    *, *::before, *::after {
+      transition: none !important;
+      animation: none !important;
+      animation-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  .progress { display: flex; gap: 6px; margin-bottom: 22px; }
+  .progress .dot {
+    height: 5px; flex: 1; border-radius: 3px;
+    background: var(--line);
+  }
+  .progress .dot.done { background: var(--accent); }
+  .progress .dot.current { background: var(--accent-soft); }
+
+  .eyebrow {
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+
+  .hero-title { font-size: 36px; line-height: 1.08; margin-bottom: 16px; }
+  .lede { font-size: 16px; line-height: 1.55; color: var(--ink-soft); margin-bottom: 26px; }
+
+  .question-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .question-text {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    font-size: 23px; line-height: 1.28;
+  }
+  .q-kicker {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+
+  .options { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+  .option-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+  button.opt {
+    font-family: inherit; font-size: 15px; font-weight: 600;
+    color: var(--ink); background: #fff;
+    border: 1.5px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; text-align: left; cursor: pointer;
+    min-height: 48px;
+    transition: border-color 120ms ease, background 120ms ease, transform 80ms ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button.opt:active { transform: scale(0.98); background: var(--paper-dim); border-color: var(--accent); }
+  button.opt:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  @media (hover: hover) { button.opt:hover { border-color: var(--accent); } }
+  button.opt.chip { text-align: center; padding: 10px 8px; font-size: 13.5px; min-height: 48px; }
+
+  .btn-primary {
+    font-family: inherit; font-size: 16px; font-weight: 700;
+    color: #fff; background: var(--accent);
+    border: none; border-radius: 10px;
+    padding: 16px 20px; cursor: pointer;
+    min-height: 52px; width: 100%;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 80ms ease, background 120ms ease;
+  }
+  .btn-primary:active { transform: scale(0.98); background: #9a4419; }
+  .btn-primary:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .btn-secondary {
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    color: var(--ink-soft); background: none; border: none;
+    padding: 12px 16px; margin-top: 14px; cursor: pointer;
+    text-decoration: underline; min-height: 44px; width: 100%;
+  }
+  .btn-secondary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+  .reveal-block { text-align: center; padding: 8px 0 4px; }
+  .reveal-label { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 6px; line-height: 1.4; }
+  .big-number {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 700; font-size: 68px; line-height: 1;
+    color: var(--ink); font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+  .big-number .pct { font-size: 34px; color: var(--accent); letter-spacing: 0; }
+  .ci-band { margin: 10px auto 0; font-size: 12.5px; color: var(--ink-soft); }
+  .ci-track {
+    height: 6px; background: var(--paper-dim); border-radius: 4px;
+    margin: 10px auto 6px; max-width: 220px; position: relative; overflow: hidden;
+  }
+  .ci-fill {
+    position: absolute; top: 0; bottom: 0;
+    background: var(--accent-soft); border-radius: 4px;
+    transition: left 500ms ease, width 500ms ease;
+  }
+  .note {
+    font-size: 12.5px; line-height: 1.45; color: var(--ink-soft);
+    background: var(--paper-dim); border-radius: 8px;
+    padding: 9px 12px; margin: 14px auto 0; max-width: 320px;
+  }
+  .note.soft { background: none; padding: 6px 0 0; opacity: 0.85; }
+
+  .party-bars { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+  .party-heading {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-soft);
+    margin: 26px 0 12px; text-align: center;
+  }
+  .party-row {
+    display: grid; grid-template-columns: 44px 1fr 50px;
+    align-items: center; gap: 10px; font-size: 13px;
+  }
+  .party-row.callout .party-label { color: #8a5c0f; font-weight: 700; }
+  .party-label { font-weight: 600; color: var(--ink-soft); }
+  .party-track { height: 12px; background: var(--paper-dim); border-radius: 6px; overflow: hidden; }
+  .party-fill { height: 100%; border-radius: 6px; width: 0; transition: width 700ms cubic-bezier(.2,.8,.2,1); }
+  .party-fill.dem { background: var(--dem); }
+  .party-fill.rep { background: var(--rep); }
+  .party-fill.ind { background: var(--ind); }
+  .party-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .party-callout { margin-top: 14px; font-size: 13.5px; line-height: 1.5; color: var(--ink-soft); }
+  .party-callout strong { color: var(--accent); }
+
+  .statement {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 19px; line-height: 1.4;
+    text-align: center; margin: 18px 0 4px;
+  }
+
+  .sharpen-label { font-family: 'Fraunces', Georgia, serif; font-size: 20px; font-weight: 600; text-align: center; margin: 22px 0 4px; }
+  .sharpen-sub { font-size: 13.5px; color: var(--ink-soft); text-align: center; }
+
+  .bridge-text { font-family: 'Fraunces', Georgia, serif; font-size: 26px; line-height: 1.3; margin: 18px 0 26px; }
+
+  .spacer { flex: 1; min-height: 20px; }
+
+  .footnote {
+    font-size: 11.5px; color: var(--ink-soft); opacity: 0.8;
+    text-align: center; margin-top: 18px; line-height: 1.5;
+  }
+
+  .conv-title { font-size: 31px; line-height: 1.12; margin-bottom: 12px; }
+  .conv-lede { font-size: 15.5px; color: var(--ink-soft); line-height: 1.55; margin-bottom: 20px; }
+  .recap {
+    border-left: 3px solid var(--accent-soft);
+    padding: 2px 0 2px 14px; margin-bottom: 22px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .recap-item { font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+  .recap-item b { color: var(--ink); font-family: 'Fraunces', Georgia, serif; font-size: 15px; }
+  .score-preview {
+    background: linear-gradient(135deg, var(--ink) 0%, #2f4460 100%);
+    color: #fff; border-radius: var(--radius);
+    padding: 24px; text-align: center; margin-bottom: 22px;
+  }
+  .score-preview .eyebrow { color: rgba(255,255,255,0.65); }
+  .score-preview .score-num {
+    font-family: 'Fraunces', Georgia, serif;
+    font-size: 54px; font-weight: 700; color: #edb64a; line-height: 1;
+  }
+  .score-preview .score-sub { font-size: 12.5px; color: rgba(255,255,255,0.75); margin-top: 10px; line-height: 1.45; }
+
+  .email-form { display: flex; flex-direction: column; gap: 12px; }
+  .email-form input[type=email] {
+    font-family: inherit; font-size: 16px;
+    padding: 14px 16px; border: 1.5px solid var(--line);
+    border-radius: 10px; background: #fff; min-height: 48px; width: 100%;
+  }
+  .email-form input[type=email]:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .demo-note { font-size: 12px; color: var(--ink-soft); text-align: center; margin-top: 12px; }
+  .confirm { text-align: center; padding: 20px 10px; }
+  .confirm .check {
+    width: 56px; height: 56px; margin: 0 auto 16px;
+    border-radius: 50%; background: var(--accent); color: #fff;
+    font-size: 30px; line-height: 56px;
+  }
+  a.learn-more { color: var(--ink-soft); font-size: 13px; display: inline-block; padding: 12px; min-height: 44px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0;
+    margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const BUNDLE = {"generated_at":"2026-08-16T03:19:45.968178+00:00","vintage":"2024 ANES","questions":{"democracy_importance":{"funnel_role":"unity_opener","lead_disclosure":"age_group","question_text":"How important is it that the U.S. remains a democracy?","positive_label":"% saying important","national":{"estimate":0.808775,"q025":0.790393,"q975":0.825855,"ci_width":0.035462,"reliability":"high","n_survey":4396},"party":{"dem":91.6,"ind":64.0,"rep":81.6,"note":"% saying important"},"slices":[{"state":"ALL","age_group":"18-24","educ":"ALL","estimate":0.745528,"q025":0.679664,"q975":0.805851,"ci_width":0.126187,"reliability":"high","n_survey":169},{"state":"ALL","age_group":"25-29","educ":"ALL","estimate":0.739287,"q025":0.68258,"q975":0.79144,"ci_width":0.10886,"reliability":"high","n_survey":260},{"state":"ALL","age_group":"30-34","educ":"ALL","estimate":0.758848,"q025":0.711497,"q975":0.804583,"ci_width":0.093086,"reliability":"high","n_survey":330},{"state":"ALL","age_group":"35-39","educ":"ALL","estimate":0.736574,"q025":0.690423,"q975":0.781238,"ci_width":0.090815,"reliability":"high","n_survey":368},{"state":"ALL","age_group":"40-44","educ":"ALL","estimate":0.762808,"q025":0.719122,"q975":0.80396,"ci_width":0.084838,"reliability":"high","n_survey":419},{"state":"ALL","age_group":"45-49","educ":"ALL","estimate":0.803849,"q025":0.759591,"q975":0.844816,"ci_width":0.085225,"reliability":"high","n_survey":340},{"state":"ALL","age_group":"50-54","educ":"ALL","estimate":0.841205,"q025":0.800395,"q975":0.879788,"ci_width":0.079393,"reliability":"high","n_survey":340},{"state":"ALL","age_group":"55-59","educ":"ALL","estimate":0.849088,"q025":0.808589,"q975":0.886424,"ci_width":0.077835,"reliability":"high","n_survey":345},{"state":"ALL","age_group":"60-64","educ":"ALL","estimate":0.881605,"q025":0.848762,"q975":0.911588,"ci_width":0.062826,"reliability":"high","n_survey":417},{"state":"ALL","age_group":"65-69","educ":"ALL","estimate":0.891731,"q025":0.861119,"q975":0.919117,"ci_width":0.057997,"reliability":"high","n_survey":443},{"state":"ALL","age_group":"70-74","educ":"ALL","estimate":0.929323,"q025":0.901356,"q975":0.953723,"ci_width":0.052367,"reliability":"high","n_survey":388},{"state":"ALL","age_group":"75-79","educ":"ALL","estimate":0.944297,"q025":0.913893,"q975":0.968381,"ci_width":0.054488,"reliability":"high","n_survey":301},{"state":"ALL","age_group":"80 plus","educ":"ALL","estimate":0.91877,"q025":0.880663,"q975":0.949613,"ci_width":0.06895,"reliability":"high","n_survey":276},{"state":"ALL","age_group":"ALL","educ":"HS or less","estimate":0.737974,"q025":0.704722,"q975":0.769634,"ci_width":0.064911,"reliability":"high","n_survey":957},{"state":"ALL","age_group":"ALL","educ":"Some College","estimate":0.814615,"q025":0.78635,"q975":0.840865,"ci_width":0.054514,"reliability":"high","n_survey":1376},{"state":"ALL","age_group":"ALL","educ":"BA/BS","estimate":0.879272,"q025":0.857848,"q975":0.898996,"ci_width":0.041148,"reliability":"high","n_survey":1157},{"state":"ALL","age_group":"ALL","educ":"Postgrad","estimate":0.893785,"q025":0.872679,"q975":0.913589,"ci_width":0.04091,"reliability":"high","n_survey":906},{"state":"TX","age_group":"ALL","educ":"ALL","estimate":0.79135,"q025":0.750621,"q975":0.822424,"ci_width":0.071803,"reliability":"high","n_survey":321},{"state":"TX","age_group":"18-24","educ":"ALL","estimate":0.735598,"q025":0.656096,"q975":0.803987,"ci_width":0.147892,"reliability":"high","n_survey":17},{"state":"TX","age_group":"25-29","educ":"ALL","estimate":0.725178,"q025":0.652734,"q975":0.787557,"ci_width":0.134823,"reliability":"high","n_survey":28},{"state":"TX","age_group":"30-34","educ":"ALL","estimate":0.746516,"q025":0.682864,"q975":0.800994,"ci_width":0.118131,"reliability":"high","n_survey":21},{"state":"TX","age_group":"35-39","educ":"ALL","estimate":0.724397,"q025":0.660734,"q975":0.778738,"ci_width":0.118004,"reliability":"high","n_survey":27},{"state":"TX","age_group":"40-44","educ":"ALL","estimate":0.751038,"q025":0.691858,"q975":0.80301,"ci_width":0.111153,"reliability":"high","n_survey":34},{"state":"TX","age_group":"45-49","educ":"ALL","estimate":0.794254,"q025":0.736194,"q975":0.84429,"ci_width":0.108095,"reliability":"high","n_survey":23},{"state":"TX","age_group":"50-54","educ":"ALL","estimate":0.833773,"q025":0.782104,"q975":0.878732,"ci_width":0.096627,"reliability":"high","n_survey":20},{"state":"TX","age_group":"55-59","educ":"ALL","estimate":0.842194,"q025":0.790899,"q975":0.885354,"ci_width":0.094455,"reliability":"high","n_survey":27},{"state":"TX","age_group":"60-64","educ":"ALL","estimate":0.876523,"q025":0.833481,"q975":0.911675,"ci_width":0.078194,"reliability":"high","n_survey":34},{"state":"TX","age_group":"65-69","educ":"ALL","estimate":0.886147,"q025":0.844903,"q975":0.918385,"ci_width":0.073482,"reliability":"high","n_survey":31},{"state":"TX","age_group":"70-74","educ":"ALL","estimate":0.925578,"q025":0.893141,"q975":0.952701,"ci_width":0.059561,"reliability":"high","n_survey":28},{"state":"TX","age_group":"75-79","educ":"ALL","estimate":0.941701,"q025":0.907993,"q975":0.968243,"ci_width":0.06025,"reliability":"high","n_survey":15},{"state":"TX","age_group":"80 plus","educ":"ALL","estimate":0.916767,"q025":0.873808,"q975":0.950427,"ci_width":0.076619,"reliability":"high","n_survey":16},{"state":"CA","age_group":"ALL","educ":"ALL","estimate":0.802714,"q025":0.767302,"q975":0.834385,"ci_width":0.067082,"reliability":"high","n_survey":377},{"state":"CA","age_group":"18-24","educ":"ALL","estimate":0.745789,"q025":0.669482,"q975":0.812753,"ci_width":0.143271,"reliability":"high","n_survey":24},{"state":"CA","age_group":"25-29","educ":"ALL","estimate":0.733039,"q025":0.665328,"q975":0.795567,"ci_width":0.130239,"reliability":"high","n_survey":26},{"state":"CA","age_group":"30-34","educ":"ALL","estimate":0.754855,"q025":0.69351,"q975":0.80933,"ci_width":0.11582,"reliability":"high","n_survey":28},{"state":"CA","age_group":"35-39","educ":"ALL","estimate":0.731771,"q025":0.670986,"q975":0.787672,"ci_width":0.116686,"reliability":"high","n_survey":32},{"state":"CA","age_group":"40-44","educ":"ALL","estimate":0.758346,"q025":0.700753,"q975":0.810041,"ci_width":0.109288,"reliability":"high","n_survey":28},{"state":"CA","age_group":"45-49","educ":"ALL","estimate":0.799221,"q025":0.744355,"q975":0.848937,"ci_width":0.104582,"reliability":"high","n_survey":39},{"state":"CA","age_group":"50-54","educ":"ALL","estimate":0.83602,"q025":0.785531,"q975":0.880918,"ci_width":0.095388,"reliability":"high","n_survey":25},{"state":"CA","age_group":"55-59","educ":"ALL","estimate":0.846115,"q025":0.796419,"q975":0.889458,"ci_width":0.093039,"reliability":"high","n_survey":27},{"state":"CA","age_group":"60-64","educ":"ALL","estimate":0.880142,"q025":0.839422,"q975":0.915402,"ci_width":0.07598,"reliability":"high","n_survey":35},{"state":"CA","age_group":"65-69","educ":"ALL","estimate":0.889965,"q025":0.851907,"q975":0.922603,"ci_width":0.070696,"reliability":"high","n_survey":40},{"state":"CA","age_group":"70-74","educ":"ALL","estimate":0.929117,"q025":0.897235,"q975":0.955339,"ci_width":0.058104,"reliability":"high","n_survey":24},{"state":"CA","age_group":"75-79","educ":"ALL","estimate":0.945347,"q025":0.913095,"q975":0.970164,"ci_width":0.057069,"reliability":"high","n_survey":24},{"state":"CA","age_group":"80 plus","educ":"ALL","estimate":0.919888,"q025":0.878604,"q975":0.952446,"ci_width":0.073842,"reliability":"high","n_survey":25},{"state":"NY","age_group":"ALL","educ":"ALL","estimate":0.795366,"q025":0.749949,"q975":0.831789,"ci_width":0.081839,"reliability":"high","n_survey":184},{"state":"NY","age_group":"18-24","educ":"ALL","estimate":0.734355,"q025":0.64625,"q975":0.807261,"ci_width":0.16101,"reliability":"medium","n_survey":5},{"state":"NY","age_group":"25-29","educ":"ALL","estimate":0.732784,"q025":0.655491,"q975":0.798046,"ci_width":0.142554,"reliability":"high","n_survey":9},{"state":"NY","age_group":"30-34","educ":"ALL","estimate":0.748203,"q025":0.681115,"q975":0.807696,"ci_width":0.126581,"reliability":"high","n_survey":14},{"state":"NY","age_group":"35-39","educ":"ALL","estimate":0.720023,"q025":0.650374,"q975":0.782463,"ci_width":0.132089,"reliability":"high","n_survey":12},{"state":"NY","age_group":"40-44","educ":"ALL","estimate":0.741764,"q025":0.674024,"q975":0.798433,"ci_width":0.12441,"reliability":"high","n_survey":18},{"state":"NY","age_group":"45-49","educ":"ALL","estimate":0.7829,"q025":0.717487,"q975":0.837952,"ci_width":0.120465,"reliability":"high","n_survey":15},{"state":"NY","age_group":"50-54","educ":"ALL","estimate":0.822107,"q025":0.763181,"q975":0.872252,"ci_width":0.10907,"reliability":"high","n_survey":10},{"state":"NY","age_group":"55-59","educ":"ALL","estimate":0.829944,"q025":0.771715,"q975":0.87799,"ci_width":0.106275,"reliability":"high","n_survey":21},{"state":"NY","age_group":"60-64","educ":"ALL","estimate":0.866178,"q025":0.816729,"q975":0.905953,"ci_width":0.089224,"reliability":"high","n_survey":19},{"state":"NY","age_group":"65-69","educ":"ALL","estimate":0.875763,"q025":0.829078,"q975":0.912454,"ci_width":0.083375,"reliability":"high","n_survey":21},{"state":"NY","age_group":"70-74","educ":"ALL","estimate":0.917598,"q025":0.878424,"q975":0.948381,"ci_width":0.069956,"reliability":"high","n_survey":20},{"state":"NY","age_group":"75-79","educ":"ALL","estimate":0.93468,"q025":0.895301,"q975":0.964576,"ci_width":0.069275,"reliability":"high","n_survey":8},{"state":"NY","age_group":"80 plus","educ":"ALL","estimate":0.906618,"q025":0.856245,"q975":0.944656,"ci_width":0.088411,"reliability":"high","n_survey":12},{"state":"FL","age_group":"ALL","educ":"ALL","estimate":0.828167,"q025":0.799863,"q975":0.862971,"ci_width":0.063108,"reliability":"high","n_survey":236},{"state":"FL","age_group":"18-24","educ":"ALL","estimate":0.760941,"q025":0.68757,"q975":0.83045,"ci_width":0.14288,"reliability":"high","n_survey":7},{"state":"FL","age_group":"25-29","educ":"ALL","estimate":0.748696,"q025":0.683603,"q975":0.813772,"ci_width":0.130169,"reliability":"high","n_survey":16},{"state":"FL","age_group":"30-34","educ":"ALL","estimate":0.767367,"q025":0.709618,"q975":0.824912,"ci_width":0.115294,"reliability":"high","n_survey":16},{"state":"FL","age_group":"35-39","educ":"ALL","estimate":0.747162,"q025":0.689394,"q975":0.808249,"ci_width":0.118855,"reliability":"high","n_survey":21},{"state":"FL","age_group":"40-44","educ":"ALL","estimate":0.774183,"q025":0.720612,"q975":0.829311,"ci_width":0.108699,"reliability":"high","n_survey":22},{"state":"FL","age_group":"45-49","educ":"ALL","estimate":0.815023,"q025":0.763739,"q975":0.864691,"ci_width":0.100951,"reliability":"high","n_survey":16},{"state":"FL","age_group":"50-54","educ":"ALL","estimate":0.851543,"q025":0.80534,"q975":0.895633,"ci_width":0.090293,"reliability":"high","n_survey":19},{"state":"FL","age_group":"55-59","educ":"ALL","estimate":0.861598,"q025":0.816485,"q975":0.903673,"ci_width":0.087188,"reliability":"high","n_survey":18},{"state":"FL","age_group":"60-64","educ":"ALL","estimate":0.892735,"q025":0.856408,"q975":0.926603,"ci_width":0.070196,"reliability":"high","n_survey":17},{"state":"FL","age_group":"65-69","educ":"ALL","estimate":0.902149,"q025":0.868096,"q975":0.932775,"ci_width":0.064679,"reliability":"high","n_survey":25},{"state":"FL","age_group":"70-74","educ":"ALL","estimate":0.936283,"q025":0.90712,"q975":0.960759,"ci_width":0.053639,"reliability":"high","n_survey":21},{"state":"FL","age_group":"75-79","educ":"ALL","estimate":0.95015,"q025":0.920201,"q975":0.973368,"ci_width":0.053167,"reliability":"high","n_survey":13},{"state":"FL","age_group":"80 plus","educ":"ALL","estimate":0.92739,"q025":0.889715,"q975":0.957194,"ci_width":0.067479,"reliability":"high","n_survey":25},{"state":"PA","age_group":"ALL","educ":"ALL","estimate":0.793918,"q025":0.748618,"q975":0.830291,"ci_width":0.081673,"reliability":"high","n_survey":177},{"state":"PA","age_group":"18-24","educ":"ALL","estimate":0.719543,"q025":0.629,"q975":0.797192,"ci_width":0.168192,"reliability":"medium","n_survey":2},{"state":"PA","age_group":"25-29","educ":"ALL","estimate":0.722473,"q025":0.643739,"q975":0.789295,"ci_width":0.145556,"reliability":"high","n_survey":10},{"state":"PA","age_group":"30-34","educ":"ALL","estimate":0.741961,"q025":0.674697,"q975":0.801579,"ci_width":0.126882,"reliability":"high","n_survey":15},{"state":"PA","age_group":"35-39","educ":"ALL","estimate":0.717966,"q025":0.647705,"q975":0.778766,"ci_width":0.131061,"reliability":"high","n_survey":17},{"state":"PA","age_group":"40-44","educ":"ALL","estimate":0.745844,"q025":0.681355,"q975":0.800748,"ci_width":0.119394,"reliability":"high","n_survey":15},{"state":"PA","age_group":"45-49","educ":"ALL","estimate":0.784387,"q025":0.719682,"q975":0.838232,"ci_width":0.11855,"reliability":"high","n_survey":17},{"state":"PA","age_group":"50-54","educ":"ALL","estimate":0.821895,"q025":0.762076,"q975":0.87222,"ci_width":0.110143,"reliability":"high","n_survey":11},{"state":"PA","age_group":"55-59","educ":"ALL","estimate":0.829156,"q025":0.770549,"q975":0.87675,"ci_width":0.106201,"reliability":"high","n_survey":10},{"state":"PA","age_group":"60-64","educ":"ALL","estimate":0.863045,"q025":0.813791,"q975":0.902968,"ci_width":0.089177,"reliability":"high","n_survey":17},{"state":"PA","age_group":"65-69","educ":"ALL","estimate":0.875905,"q025":0.830173,"q975":0.912313,"ci_width":0.08214,"reliability":"high","n_survey":17},{"state":"PA","age_group":"70-74","educ":"ALL","estimate":0.915497,"q025":0.876428,"q975":0.946832,"ci_width":0.070404,"reliability":"high","n_survey":22},{"state":"PA","age_group":"75-79","educ":"ALL","estimate":0.933025,"q025":0.892704,"q975":0.963444,"ci_width":0.07074,"reliability":"high","n_survey":13},{"state":"PA","age_group":"80 plus","educ":"ALL","estimate":0.903374,"q025":0.850861,"q975":0.942488,"ci_width":0.091627,"reliability":"high","n_survey":11},{"state":"OH","age_group":"ALL","educ":"ALL","estimate":0.810287,"q025":0.775771,"q975":0.842217,"ci_width":0.066446,"reliability":"high","n_survey":157},{"state":"OH","age_group":"18-24","educ":"ALL","estimate":0.743708,"q025":0.667813,"q975":0.813618,"ci_width":0.145805,"reliability":"high","n_survey":3},{"state":"OH","age_group":"25-29","educ":"ALL","estimate":0.738751,"q025":0.66978,"q975":0.801397,"ci_width":0.131617,"reliability":"high","n_survey":6},{"state":"OH","age_group":"30-34","educ":"ALL","estimate":0.760016,"q025":0.700364,"q975":0.815542,"ci_width":0.115178,"reliability":"high","n_survey":10},{"state":"OH","age_group":"35-39","educ":"ALL","estimate":0.73803,"q025":0.679222,"q975":0.791192,"ci_width":0.11197,"reliability":"high","n_survey":22},{"state":"OH","age_group":"40-44","educ":"ALL","estimate":0.764553,"q025":0.710168,"q975":0.817348,"ci_width":0.10718,"reliability":"high","n_survey":12},{"state":"OH","age_group":"45-49","educ":"ALL","estimate":0.804882,"q025":0.750703,"q975":0.853462,"ci_width":0.10276,"reliability":"high","n_survey":14},{"state":"OH","age_group":"50-54","educ":"ALL","estimate":0.842538,"q025":0.793596,"q975":0.885916,"ci_width":0.09232,"reliability":"high","n_survey":12},{"state":"OH","age_group":"55-59","educ":"ALL","estimate":0.847296,"q025":0.798296,"q975":0.891336,"ci_width":0.09304,"reliability":"high","n_survey":14},{"state":"OH","age_group":"60-64","educ":"ALL","estimate":0.87944,"q025":0.838609,"q975":0.914283,"ci_width":0.075674,"reliability":"high","n_survey":15},{"state":"OH","age_group":"65-69","educ":"ALL","estimate":0.88895,"q025":0.850829,"q975":0.920512,"ci_width":0.069683,"reliability":"high","n_survey":19},{"state":"OH","age_group":"70-74","educ":"ALL","estimate":0.927167,"q025":0.894368,"q975":0.953825,"ci_width":0.059457,"reliability":"high","n_survey":11},{"state":"OH","age_group":"75-79","educ":"ALL","estimate":0.941696,"q025":0.907497,"q975":0.968326,"ci_width":0.060829,"reliability":"high","n_survey":12},{"state":"OH","age_group":"80 plus","educ":"ALL","estimate":0.916103,"q025":0.872979,"q975":0.949434,"ci_width":0.076455,"reliability":"high","n_survey":7},{"state":"GA","age_group":"ALL","educ":"ALL","estimate":0.801306,"q025":0.760885,"q975":0.83293,"ci_width":0.072045,"reliability":"high","n_survey":139},{"state":"GA","age_group":"18-24","educ":"ALL","estimate":0.73997,"q025":0.659301,"q975":0.809754,"ci_width":0.150452,"reliability":"medium","n_survey":4},{"state":"GA","age_group":"25-29","educ":"ALL","estimate":0.733741,"q025":0.661722,"q975":0.795639,"ci_width":0.133917,"reliability":"high","n_survey":7},{"state":"GA","age_group":"30-34","educ":"ALL","estimate":0.751869,"q025":0.687108,"q975":0.806282,"ci_width":0.119173,"reliability":"high","n_survey":11},{"state":"GA","age_group":"35-39","educ":"ALL","estimate":0.730337,"q025":0.667013,"q975":0.784911,"ci_width":0.117898,"reliability":"high","n_survey":11},{"state":"GA","age_group":"40-44","educ":"ALL","estimate":0.758458,"q025":0.696499,"q975":0.811352,"ci_width":0.114853,"reliability":"high","n_survey":8},{"state":"GA","age_group":"45-49","educ":"ALL","estimate":0.805097,"q025":0.747164,"q975":0.853151,"ci_width":0.105988,"reliability":"high","n_survey":9},{"state":"GA","age_group":"50-54","educ":"ALL","estimate":0.842286,"q025":0.790048,"q975":0.885545,"ci_width":0.095497,"reliability":"high","n_survey":15},{"state":"GA","age_group":"55-59","educ":"ALL","estimate":0.848499,"q025":0.797058,"q975":0.891517,"ci_width":0.094459,"reliability":"high","n_survey":15},{"state":"GA","age_group":"60-64","educ":"ALL","estimate":0.880699,"q025":0.839431,"q975":0.915248,"ci_width":0.075817,"reliability":"high","n_survey":6},{"state":"GA","age_group":"65-69","educ":"ALL","estimate":0.888496,"q025":0.848533,"q975":0.920472,"ci_width":0.071938,"reliability":"high","n_survey":18},{"state":"GA","age_group":"70-74","educ":"ALL","estimate":0.927641,"q025":0.895043,"q975":0.954287,"ci_width":0.059245,"reliability":"high","n_survey":12},{"state":"GA","age_group":"75-79","educ":"ALL","estimate":0.942551,"q025":0.909067,"q975":0.968809,"ci_width":0.059742,"reliability":"high","n_survey":12},{"state":"GA","age_group":"80 plus","educ":"ALL","estimate":0.916953,"q025":0.873442,"q975":0.950227,"ci_width":0.076786,"reliability":"high","n_survey":11},{"state":"AZ","age_group":"ALL","educ":"ALL","estimate":0.818497,"q025":0.783364,"q975":0.857394,"ci_width":0.07403,"reliability":"high","n_survey":90},{"state":"AZ","age_group":"18-24","educ":"ALL","estimate":0.7472,"q025":0.666256,"q975":0.820067,"ci_width":0.153811,"reliability":"medium","n_survey":0},{"state":"AZ","age_group":"25-29","educ":"ALL","estimate":0.740977,"q025":0.672975,"q975":0.808455,"ci_width":0.13548,"reliability":"high","n_survey":10},{"state":"AZ","age_group":"30-34","educ":"ALL","estimate":0.761377,"q025":0.69887,"q975":0.822932,"ci_width":0.124062,"reliability":"high","n_survey":8},{"state":"AZ","age_group":"35-39","educ":"ALL","estimate":0.744479,"q025":0.682156,"q975":0.806013,"ci_width":0.123857,"reliability":"high","n_survey":3},{"state":"AZ","age_group":"40-44","educ":"ALL","estimate":0.769956,"q025":0.712484,"q975":0.827172,"ci_width":0.114687,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"45-49","educ":"ALL","estimate":0.81319,"q025":0.757831,"q975":0.864856,"ci_width":0.107026,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"50-54","educ":"ALL","estimate":0.850466,"q025":0.800691,"q975":0.895973,"ci_width":0.095282,"reliability":"high","n_survey":9},{"state":"AZ","age_group":"55-59","educ":"ALL","estimate":0.859791,"q025":0.810802,"q975":0.904271,"ci_width":0.093469,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"60-64","educ":"ALL","estimate":0.892578,"q025":0.854081,"q975":0.927162,"ci_width":0.073081,"reliability":"high","n_survey":12},{"state":"AZ","age_group":"65-69","educ":"ALL","estimate":0.902652,"q025":0.867981,"q975":0.934248,"ci_width":0.066267,"reliability":"high","n_survey":10},{"state":"AZ","age_group":"70-74","educ":"ALL","estimate":0.937371,"q025":0.908438,"q975":0.961579,"ci_width":0.053142,"reliability":"high","n_survey":11},{"state":"AZ","age_group":"75-79","educ":"ALL","estimate":0.950958,"q025":0.921778,"q975":0.974,"ci_width":0.052222,"reliability":"high","n_survey":5},{"state":"AZ","age_group":"80 plus","educ":"ALL","estimate":0.929117,"q025":0.891703,"q975":0.959276,"ci_width":0.067574,"reliability":"high","n_survey":10},{"state":"WI","age_group":"ALL","educ":"ALL","estimate":0.81468,"q025":0.777874,"q975":0.846419,"ci_width":0.068545,"reliability":"high","n_survey":113},{"state":"WI","age_group":"18-24","educ":"ALL","estimate":0.74972,"q025":0.671958,"q975":0.819003,"ci_width":0.147045,"reliability":"high","n_survey":3},{"state":"WI","age_group":"25-29","educ":"ALL","estimate":0.742607,"q025":0.672794,"q975":0.804311,"ci_width":0.131516,"reliability":"high","n_survey":5},{"state":"WI","age_group":"30-34","educ":"ALL","estimate":0.761758,"q025":0.70097,"q975":0.815461,"ci_width":0.114491,"reliability":"high","n_survey":12},{"state":"WI","age_group":"35-39","educ":"ALL","estimate":0.738894,"q025":0.676699,"q975":0.794423,"ci_width":0.117724,"reliability":"high","n_survey":10},{"state":"WI","age_group":"40-44","educ":"ALL","estimate":0.765943,"q025":0.709119,"q975":0.817888,"ci_width":0.10877,"reliability":"high","n_survey":8},{"state":"WI","age_group":"45-49","educ":"ALL","estimate":0.806109,"q025":0.751881,"q975":0.855941,"ci_width":0.104059,"reliability":"high","n_survey":5},{"state":"WI","age_group":"50-54","educ":"ALL","estimate":0.844628,"q025":0.794317,"q975":0.888554,"ci_width":0.094237,"reliability":"high","n_survey":10},{"state":"WI","age_group":"55-59","educ":"ALL","estimate":0.850461,"q025":0.798654,"q975":0.893545,"ci_width":0.09489,"reliability":"high","n_survey":8},{"state":"WI","age_group":"60-64","educ":"ALL","estimate":0.880891,"q025":0.83908,"q975":0.915606,"ci_width":0.076526,"reliability":"high","n_survey":16},{"state":"WI","age_group":"65-69","educ":"ALL","estimate":0.891405,"q025":0.852943,"q975":0.923088,"ci_width":0.070145,"reliability":"high","n_survey":13},{"state":"WI","age_group":"70-74","educ":"ALL","estimate":0.929231,"q025":0.896384,"q975":0.955032,"ci_width":0.058648,"reliability":"high","n_survey":8},{"state":"WI","age_group":"75-79","educ":"ALL","estimate":0.942902,"q025":0.908454,"q975":0.968839,"ci_width":0.060386,"reliability":"high","n_survey":12},{"state":"WI","age_group":"80 plus","educ":"ALL","estimate":0.917071,"q025":0.873394,"q975":0.950844,"ci_width":0.07745,"reliability":"high","n_survey":3},{"state":"NC","age_group":"ALL","educ":"ALL","estimate":0.814753,"q025":0.779896,"q975":0.84527,"ci_width":0.065375,"reliability":"high","n_survey":122},{"state":"NC","age_group":"18-24","educ":"ALL","estimate":0.748485,"q025":0.671366,"q975":0.816022,"ci_width":0.144656,"reliability":"high","n_survey":5},{"state":"NC","age_group":"25-29","educ":"ALL","estimate":0.745105,"q025":0.676253,"q975":0.806415,"ci_width":0.130162,"reliability":"high","n_survey":6},{"state":"NC","age_group":"30-34","educ":"ALL","estimate":0.765314,"q025":0.704829,"q975":0.818145,"ci_width":0.113316,"reliability":"high","n_survey":9},{"state":"NC","age_group":"35-39","educ":"ALL","estimate":0.743141,"q025":0.684326,"q975":0.796273,"ci_width":0.111947,"reliability":"high","n_survey":11},{"state":"NC","age_group":"40-44","educ":"ALL","estimate":0.771626,"q025":0.715542,"q975":0.81991,"ci_width":0.104368,"reliability":"high","n_survey":19},{"state":"NC","age_group":"45-49","educ":"ALL","estimate":0.811339,"q025":0.758448,"q975":0.857716,"ci_width":0.099268,"reliability":"high","n_survey":11},{"state":"NC","age_group":"50-54","educ":"ALL","estimate":0.847646,"q025":0.798856,"q975":0.89044,"ci_width":0.091583,"reliability":"high","n_survey":11},{"state":"NC","age_group":"55-59","educ":"ALL","estimate":0.854794,"q025":0.806378,"q975":0.89626,"ci_width":0.089882,"reliability":"high","n_survey":7},{"state":"NC","age_group":"60-64","educ":"ALL","estimate":0.885561,"q025":0.845872,"q975":0.919396,"ci_width":0.073525,"reliability":"high","n_survey":12},{"state":"NC","age_group":"65-69","educ":"ALL","estimate":0.894904,"q025":0.857907,"q975":0.925538,"ci_width":0.067631,"reliability":"high","n_survey":13},{"state":"NC","age_group":"70-74","educ":"ALL","estimate":0.931136,"q025":0.899993,"q975":0.956383,"ci_width":0.05639,"reliability":"high","n_survey":8},{"state":"NC","age_group":"75-79","educ":"ALL","estimate":0.945768,"q025":0.913553,"q975":0.970682,"ci_width":0.057129,"reliability":"high","n_survey":6},{"state":"NC","age_group":"80 plus","educ":"ALL","estimate":0.921407,"q025":0.879187,"q975":0.952967,"ci_width":0.07378,"reliability":"high","n_survey":4},{"state":"MI","age_group":"ALL","educ":"ALL","estimate":0.815682,"q025":0.782172,"q975":0.848641,"ci_width":0.066469,"reliability":"high","n_survey":164},{"state":"MI","age_group":"18-24","educ":"ALL","estimate":0.748768,"q025":0.673949,"q975":0.818386,"ci_width":0.144437,"reliability":"high","n_survey":12},{"state":"MI","age_group":"25-29","educ":"ALL","estimate":0.743553,"q025":0.674196,"q975":0.806042,"ci_width":0.131846,"reliability":"high","n_survey":9},{"state":"MI","age_group":"30-34","educ":"ALL","estimate":0.761247,"q025":0.699416,"q975":0.816544,"ci_width":0.117128,"reliability":"high","n_survey":8},{"state":"MI","age_group":"35-39","educ":"ALL","estimate":0.737997,"q025":0.678249,"q975":0.794613,"ci_width":0.116364,"reliability":"high","n_survey":6},{"state":"MI","age_group":"40-44","educ":"ALL","estimate":0.767243,"q025":0.712292,"q975":0.81947,"ci_width":0.107177,"reliability":"high","n_survey":17},{"state":"MI","age_group":"45-49","educ":"ALL","estimate":0.80821,"q025":0.754792,"q975":0.857823,"ci_width":0.103031,"reliability":"high","n_survey":17},{"state":"MI","age_group":"50-54","educ":"ALL","estimate":0.846276,"q025":0.797287,"q975":0.889514,"ci_width":0.092227,"reliability":"high","n_survey":10},{"state":"MI","age_group":"55-59","educ":"ALL","estimate":0.853048,"q025":0.805577,"q975":0.897306,"ci_width":0.091729,"reliability":"high","n_survey":10},{"state":"MI","age_group":"60-64","educ":"ALL","estimate":0.883849,"q025":0.844186,"q975":0.917887,"ci_width":0.073701,"reliability":"high","n_survey":19},{"state":"MI","age_group":"65-69","educ":"ALL","estimate":0.894046,"q025":0.857948,"q975":0.924983,"ci_width":0.067035,"reliability":"high","n_survey":17},{"state":"MI","age_group":"70-74","educ":"ALL","estimate":0.930497,"q025":0.89908,"q975":0.955914,"ci_width":0.056834,"reliability":"high","n_survey":16},{"state":"MI","age_group":"75-79","educ":"ALL","estimate":0.945742,"q025":0.914473,"q975":0.970231,"ci_width":0.055758,"reliability":"high","n_survey":11},{"state":"MI","age_group":"80 plus","educ":"ALL","estimate":0.919691,"q025":0.878354,"q975":0.952786,"ci_width":0.074433,"reliability":"high","n_survey":12},{"state":"CO","age_group":"ALL","educ":"ALL","estimate":0.823383,"q025":0.787227,"q975":0.858036,"ci_width":0.07081,"reliability":"high","n_survey":93},{"state":"CO","age_group":"18-24","educ":"ALL","estimate":0.755513,"q025":0.675682,"q975":0.825241,"ci_width":0.149558,"reliability":"high","n_survey":0},{"state":"CO","age_group":"25-29","educ":"ALL","estimate":0.764255,"q025":0.698045,"q975":0.824522,"ci_width":0.126477,"reliability":"high","n_survey":2},{"state":"CO","age_group":"30-34","educ":"ALL","estimate":0.785371,"q025":0.727859,"q975":0.839153,"ci_width":0.111294,"reliability":"high","n_survey":13},{"state":"CO","age_group":"35-39","educ":"ALL","estimate":0.760797,"q025":0.701577,"q975":0.81572,"ci_width":0.114143,"reliability":"high","n_survey":8},{"state":"CO","age_group":"40-44","educ":"ALL","estimate":0.787218,"q025":0.730968,"q975":0.837653,"ci_width":0.106686,"reliability":"high","n_survey":12},{"state":"CO","age_group":"45-49","educ":"ALL","estimate":0.82758,"q025":0.774799,"q975":0.873768,"ci_width":0.098969,"reliability":"high","n_survey":5},{"state":"CO","age_group":"50-54","educ":"ALL","estimate":0.861227,"q025":0.81554,"q975":0.901989,"ci_width":0.086448,"reliability":"high","n_survey":9},{"state":"CO","age_group":"55-59","educ":"ALL","estimate":0.868637,"q025":0.823685,"q975":0.90783,"ci_width":0.084145,"reliability":"high","n_survey":7},{"state":"CO","age_group":"60-64","educ":"ALL","estimate":0.897731,"q025":0.860794,"q975":0.929477,"ci_width":0.068684,"reliability":"high","n_survey":9},{"state":"CO","age_group":"65-69","educ":"ALL","estimate":0.907089,"q025":0.873118,"q975":0.936119,"ci_width":0.063001,"reliability":"high","n_survey":5},{"state":"CO","age_group":"70-74","educ":"ALL","estimate":0.941373,"q025":0.914496,"q975":0.963803,"ci_width":0.049307,"reliability":"high","n_survey":10},{"state":"CO","age_group":"75-79","educ":"ALL","estimate":0.953431,"q025":0.925968,"q975":0.975196,"ci_width":0.049228,"reliability":"high","n_survey":10},{"state":"CO","age_group":"80 plus","educ":"ALL","estimate":0.930477,"q025":0.89352,"q975":0.960255,"ci_width":0.066735,"reliability":"high","n_survey":3},{"state":"VA","age_group":"ALL","educ":"ALL","estimate":0.822541,"q025":0.790661,"q975":0.856285,"ci_width":0.065624,"reliability":"high","n_survey":114},{"state":"VA","age_group":"18-24","educ":"ALL","estimate":0.75936,"q025":0.685393,"q975":0.827671,"ci_width":0.142279,"reliability":"high","n_survey":0},{"state":"VA","age_group":"25-29","educ":"ALL","estimate":0.7588,"q025":0.693502,"q975":0.819398,"ci_width":0.125897,"reliability":"high","n_survey":5},{"state":"VA","age_group":"30-34","educ":"ALL","estimate":0.77651,"q025":0.720304,"q975":0.830938,"ci_width":0.110634,"reliability":"high","n_survey":8},{"state":"VA","age_group":"35-39","educ":"ALL","estimate":0.759946,"q025":0.704341,"q975":0.814788,"ci_width":0.110447,"reliability":"high","n_survey":8},{"state":"VA","age_group":"40-44","educ":"ALL","estimate":0.783197,"q025":0.729178,"q975":0.833024,"ci_width":0.103846,"reliability":"high","n_survey":14},{"state":"VA","age_group":"45-49","educ":"ALL","estimate":0.822749,"q025":0.772107,"q975":0.86993,"ci_width":0.097824,"reliability":"high","n_survey":12},{"state":"VA","age_group":"50-54","educ":"ALL","estimate":0.856598,"q025":0.810428,"q975":0.898616,"ci_width":0.088189,"reliability":"high","n_survey":12},{"state":"VA","age_group":"55-59","educ":"ALL","estimate":0.861525,"q025":0.815537,"q975":0.90294,"ci_width":0.087402,"reliability":"high","n_survey":6},{"state":"VA","age_group":"60-64","educ":"ALL","estimate":0.891644,"q025":0.854218,"q975":0.924381,"ci_width":0.070163,"reliability":"high","n_survey":10},{"state":"VA","age_group":"65-69","educ":"ALL","estimate":0.898286,"q025":0.863453,"q975":0.928647,"ci_width":0.065194,"reliability":"high","n_survey":14},{"state":"VA","age_group":"70-74","educ":"ALL","estimate":0.933771,"q025":0.904374,"q975":0.958946,"ci_width":0.054572,"reliability":"high","n_survey":8},{"state":"VA","age_group":"75-79","educ":"ALL","estimate":0.94741,"q025":0.915577,"q975":0.972001,"ci_width":0.056424,"reliability":"high","n_survey":10},{"state":"VA","age_group":"80 plus","educ":"ALL","estimate":0.924135,"q025":0.883772,"q975":0.955806,"ci_width":0.072034,"reliability":"high","n_survey":7}]},"no_say":{"funnel_role":"spine","lead_disclosure":"educ","question_text":"'People like me don't have any say about what the government does.'","positive_label":"% who agree","national":{"estimate":0.764509,"q025":0.748346,"q975":0.780158,"ci_width":0.031812,"reliability":"high","n_survey":3806},"party":{"dem":72.6,"ind":84.5,"rep":75.8,"note":"% agreeing"},"slices":[{"state":"ALL","age_group":"18-24","educ":"ALL","estimate":0.789464,"q025":0.747049,"q975":0.826364,"ci_width":0.079315,"reliability":"high","n_survey":136},{"state":"ALL","age_group":"25-29","educ":"ALL","estimate":0.757386,"q025":0.719203,"q975":0.793201,"ci_width":0.073997,"reliability":"high","n_survey":214},{"state":"ALL","age_group":"30-34","educ":"ALL","estimate":0.762294,"q025":0.730198,"q975":0.800088,"ci_width":0.06989,"reliability":"high","n_survey":289},{"state":"ALL","age_group":"35-39","educ":"ALL","estimate":0.760076,"q025":0.727329,"q975":0.798386,"ci_width":0.071058,"reliability":"high","n_survey":307},{"state":"ALL","age_group":"40-44","educ":"ALL","estimate":0.774952,"q025":0.740492,"q975":0.813261,"ci_width":0.072769,"reliability":"high","n_survey":370},{"state":"ALL","age_group":"45-49","educ":"ALL","estimate":0.73692,"q025":0.694084,"q975":0.770663,"ci_width":0.076579,"reliability":"high","n_survey":295},{"state":"ALL","age_group":"50-54","educ":"ALL","estimate":0.747822,"q025":0.709814,"q975":0.780408,"ci_width":0.070595,"reliability":"high","n_survey":293},{"state":"ALL","age_group":"55-59","educ":"ALL","estimate":0.771102,"q025":0.73919,"q975":0.80662,"ci_width":0.06743,"reliability":"high","n_survey":305},{"state":"ALL","age_group":"60-64","educ":"ALL","estimate":0.745922,"q025":0.705258,"q975":0.77714,"ci_width":0.071881,"reliability":"high","n_survey":368},{"state":"ALL","age_group":"65-69","educ":"ALL","estimate":0.763454,"q025":0.732248,"q975":0.794031,"ci_width":0.061783,"reliability":"high","n_survey":398},{"state":"ALL","age_group":"70-74","educ":"ALL","estimate":0.752465,"q025":0.716821,"q975":0.783555,"ci_width":0.066734,"reliability":"high","n_survey":339},{"state":"ALL","age_group":"75-79","educ":"ALL","estimate":0.740585,"q025":0.690862,"q975":0.775345,"ci_width":0.084483,"reliability":"high","n_survey":257},{"state":"ALL","age_group":"80 plus","educ":"ALL","estimate":0.77429,"q025":0.737999,"q975":0.808962,"ci_width":0.070963,"reliability":"high","n_survey":235},{"state":"ALL","age_group":"ALL","educ":"HS or less","estimate":0.809783,"q025":0.780488,"q975":0.836968,"ci_width":0.05648,"reliability":"high","n_survey":812},{"state":"ALL","age_group":"ALL","educ":"Some College","estimate":0.798929,"q025":0.773633,"q975":0.822631,"ci_width":0.048998,"reliability":"high","n_survey":1197},{"state":"ALL","age_group":"ALL","educ":"BA/BS","estimate":0.696685,"q025":0.667636,"q975":0.725259,"ci_width":0.057623,"reliability":"high","n_survey":1000},{"state":"ALL","age_group":"ALL","educ":"Postgrad","estimate":0.661879,"q025":0.628057,"q975":0.69519,"ci_width":0.067133,"reliability":"high","n_survey":797},{"state":"TX","age_group":"ALL","educ":"ALL","estimate":0.775144,"q025":0.743884,"q975":0.806904,"ci_width":0.063019,"reliability":"high","n_survey":278},{"state":"TX","age_group":"ALL","educ":"HS or less","estimate":0.815621,"q025":0.777896,"q975":0.850634,"ci_width":0.072738,"reliability":"high","n_survey":73},{"state":"TX","age_group":"ALL","educ":"Some College","estimate":0.80535,"q025":0.769126,"q975":0.839205,"ci_width":0.070079,"reliability":"high","n_survey":84},{"state":"TX","age_group":"ALL","educ":"BA/BS","estimate":0.705835,"q025":0.663373,"q975":0.748156,"ci_width":0.084783,"reliability":"high","n_survey":80},{"state":"TX","age_group":"ALL","educ":"Postgrad","estimate":0.67101,"q025":0.623302,"q975":0.719248,"ci_width":0.095946,"reliability":"high","n_survey":41},{"state":"CA","age_group":"ALL","educ":"ALL","estimate":0.74078,"q025":0.703386,"q975":0.774861,"ci_width":0.071475,"reliability":"high","n_survey":314},{"state":"CA","age_group":"ALL","educ":"HS or less","estimate":0.789053,"q025":0.743602,"q975":0.828538,"ci_width":0.084936,"reliability":"high","n_survey":43},{"state":"CA","age_group":"ALL","educ":"Some College","estimate":0.777576,"q025":0.736166,"q975":0.815976,"ci_width":0.079811,"reliability":"high","n_survey":94},{"state":"CA","age_group":"ALL","educ":"BA/BS","estimate":0.670053,"q025":0.621483,"q975":0.715681,"ci_width":0.094198,"reliability":"high","n_survey":84},{"state":"CA","age_group":"ALL","educ":"Postgrad","estimate":0.633407,"q025":0.58133,"q975":0.683546,"ci_width":0.102216,"reliability":"high","n_survey":93},{"state":"NY","age_group":"ALL","educ":"ALL","estimate":0.767817,"q025":0.730362,"q975":0.804064,"ci_width":0.073701,"reliability":"high","n_survey":161},{"state":"NY","age_group":"ALL","educ":"HS or less","estimate":0.816703,"q025":0.775085,"q975":0.853202,"ci_width":0.078117,"reliability":"high","n_survey":25},{"state":"NY","age_group":"ALL","educ":"Some College","estimate":0.806491,"q025":0.766742,"q975":0.844098,"ci_width":0.077357,"reliability":"high","n_survey":39},{"state":"NY","age_group":"ALL","educ":"BA/BS","estimate":0.707605,"q025":0.660034,"q975":0.755153,"ci_width":0.095119,"reliability":"high","n_survey":44},{"state":"NY","age_group":"ALL","educ":"Postgrad","estimate":0.673114,"q025":0.618818,"q975":0.725501,"ci_width":0.106683,"reliability":"high","n_survey":53},{"state":"FL","age_group":"ALL","educ":"ALL","estimate":0.76803,"q025":0.732341,"q975":0.798587,"ci_width":0.066245,"reliability":"high","n_survey":204},{"state":"FL","age_group":"ALL","educ":"HS or less","estimate":0.811879,"q025":0.772641,"q975":0.846596,"ci_width":0.073956,"reliability":"high","n_survey":41},{"state":"FL","age_group":"ALL","educ":"Some College","estimate":0.801795,"q025":0.763671,"q975":0.835148,"ci_width":0.071477,"reliability":"high","n_survey":71},{"state":"FL","age_group":"ALL","educ":"BA/BS","estimate":0.699689,"q025":0.651269,"q975":0.742665,"ci_width":0.091396,"reliability":"high","n_survey":55},{"state":"FL","age_group":"ALL","educ":"Postgrad","estimate":0.663732,"q025":0.612095,"q975":0.712181,"ci_width":0.100087,"reliability":"high","n_survey":37},{"state":"PA","age_group":"ALL","educ":"ALL","estimate":0.776296,"q025":0.740774,"q975":0.815025,"ci_width":0.074252,"reliability":"high","n_survey":154},{"state":"PA","age_group":"ALL","educ":"HS or less","estimate":0.820064,"q025":0.780082,"q975":0.857919,"ci_width":0.077837,"reliability":"high","n_survey":40},{"state":"PA","age_group":"ALL","educ":"Some College","estimate":0.81038,"q025":0.770753,"q975":0.849863,"ci_width":0.079109,"reliability":"high","n_survey":38},{"state":"PA","age_group":"ALL","educ":"BA/BS","estimate":0.712076,"q025":0.663743,"q975":0.762471,"ci_width":0.098728,"reliability":"high","n_survey":43},{"state":"PA","age_group":"ALL","educ":"Postgrad","estimate":0.679157,"q025":0.6277,"q975":0.732621,"ci_width":0.104921,"reliability":"high","n_survey":33},{"state":"OH","age_group":"ALL","educ":"ALL","estimate":0.780504,"q025":0.745992,"q975":0.817456,"ci_width":0.071464,"reliability":"high","n_survey":142},{"state":"OH","age_group":"ALL","educ":"HS or less","estimate":0.820271,"q025":0.781554,"q975":0.858227,"ci_width":0.076673,"reliability":"high","n_survey":35},{"state":"OH","age_group":"ALL","educ":"Some College","estimate":0.810344,"q025":0.772143,"q975":0.8465,"ci_width":0.074358,"reliability":"high","n_survey":54},{"state":"OH","age_group":"ALL","educ":"BA/BS","estimate":0.711775,"q025":0.663542,"q975":0.761448,"ci_width":0.097906,"reliability":"high","n_survey":33},{"state":"OH","age_group":"ALL","educ":"Postgrad","estimate":0.678287,"q025":0.626422,"q975":0.731763,"ci_width":0.105341,"reliability":"high","n_survey":20},{"state":"GA","age_group":"ALL","educ":"ALL","estimate":0.764285,"q025":0.7213,"q975":0.795541,"ci_width":0.074241,"reliability":"high","n_survey":127},{"state":"GA","age_group":"ALL","educ":"HS or less","estimate":0.807925,"q025":0.762508,"q975":0.843653,"ci_width":0.081145,"reliability":"high","n_survey":31},{"state":"GA","age_group":"ALL","educ":"Some College","estimate":0.797347,"q025":0.75356,"q975":0.831113,"ci_width":0.077553,"reliability":"high","n_survey":42},{"state":"GA","age_group":"ALL","educ":"BA/BS","estimate":0.695141,"q025":0.639728,"q975":0.738968,"ci_width":0.099239,"reliability":"high","n_survey":28},{"state":"GA","age_group":"ALL","educ":"Postgrad","estimate":0.659441,"q025":0.600247,"q975":0.708365,"ci_width":0.108118,"reliability":"high","n_survey":26},{"state":"AZ","age_group":"ALL","educ":"ALL","estimate":0.738734,"q025":0.689314,"q975":0.779162,"ci_width":0.089848,"reliability":"high","n_survey":80},{"state":"AZ","age_group":"ALL","educ":"HS or less","estimate":0.784949,"q025":0.731598,"q975":0.828487,"ci_width":0.096889,"reliability":"high","n_survey":15},{"state":"AZ","age_group":"ALL","educ":"Some College","estimate":0.773206,"q025":0.722037,"q975":0.816123,"ci_width":0.094086,"reliability":"high","n_survey":27},{"state":"AZ","age_group":"ALL","educ":"BA/BS","estimate":0.662192,"q025":0.601417,"q975":0.715537,"ci_width":0.11412,"reliability":"high","n_survey":22},{"state":"AZ","age_group":"ALL","educ":"Postgrad","estimate":0.625276,"q025":0.561782,"q975":0.682647,"ci_width":0.120865,"reliability":"high","n_survey":16},{"state":"WI","age_group":"ALL","educ":"ALL","estimate":0.772574,"q025":0.730888,"q975":0.807002,"ci_width":0.076115,"reliability":"high","n_survey":101},{"state":"WI","age_group":"ALL","educ":"HS or less","estimate":0.815998,"q025":0.773207,"q975":0.852365,"ci_width":0.079158,"reliability":"high","n_survey":20},{"state":"WI","age_group":"ALL","educ":"Some College","estimate":0.806424,"q025":0.763889,"q975":0.841372,"ci_width":0.077483,"reliability":"high","n_survey":35},{"state":"WI","age_group":"ALL","educ":"BA/BS","estimate":0.706049,"q025":0.65322,"q975":0.752279,"ci_width":0.09906,"reliability":"high","n_survey":26},{"state":"WI","age_group":"ALL","educ":"Postgrad","estimate":0.67056,"q025":0.613289,"q975":0.721482,"ci_width":0.108194,"reliability":"high","n_survey":20},{"state":"NC","age_group":"ALL","educ":"ALL","estimate":0.771928,"q025":0.738049,"q975":0.806515,"ci_width":0.068466,"reliability":"high","n_survey":101},{"state":"NC","age_group":"ALL","educ":"HS or less","estimate":0.815573,"q025":0.777225,"q975":0.85271,"ci_width":0.075485,"reliability":"high","n_survey":20},{"state":"NC","age_group":"ALL","educ":"Some College","estimate":0.805844,"q025":0.769275,"q975":0.839961,"ci_width":0.070687,"reliability":"high","n_survey":35},{"state":"NC","age_group":"ALL","educ":"BA/BS","estimate":0.706465,"q025":0.660467,"q975":0.753101,"ci_width":0.092635,"reliability":"high","n_survey":23},{"state":"NC","age_group":"ALL","educ":"Postgrad","estimate":0.670865,"q025":0.619473,"q975":0.722785,"ci_width":0.103312,"reliability":"high","n_survey":23},{"state":"MI","age_group":"ALL","educ":"ALL","estimate":0.781791,"q025":0.749424,"q975":0.816935,"ci_width":0.06751,"reliability":"high","n_survey":141},{"state":"MI","age_group":"ALL","educ":"HS or less","estimate":0.822216,"q025":0.784358,"q975":0.859068,"ci_width":0.07471,"reliability":"high","n_survey":33},{"state":"MI","age_group":"ALL","educ":"Some College","estimate":0.812556,"q025":0.775995,"q975":0.847561,"ci_width":0.071566,"reliability":"high","n_survey":49},{"state":"MI","age_group":"ALL","educ":"BA/BS","estimate":0.714834,"q025":0.66822,"q975":0.762478,"ci_width":0.094258,"reliability":"high","n_survey":36},{"state":"MI","age_group":"ALL","educ":"Postgrad","estimate":0.679988,"q025":0.630049,"q975":0.73347,"ci_width":0.103421,"reliability":"high","n_survey":23},{"state":"CO","age_group":"ALL","educ":"ALL","estimate":0.72228,"q025":0.66767,"q975":0.763939,"ci_width":0.096269,"reliability":"high","n_survey":79},{"state":"CO","age_group":"ALL","educ":"HS or less","estimate":0.782974,"q025":0.726434,"q975":0.82788,"ci_width":0.101446,"reliability":"high","n_survey":9},{"state":"CO","age_group":"ALL","educ":"Some College","estimate":0.771517,"q025":0.715396,"q975":0.814812,"ci_width":0.099416,"reliability":"high","n_survey":22},{"state":"CO","age_group":"ALL","educ":"BA/BS","estimate":0.661126,"q025":0.596196,"q975":0.714692,"ci_width":0.118496,"reliability":"high","n_survey":24},{"state":"CO","age_group":"ALL","educ":"Postgrad","estimate":0.622994,"q025":0.554614,"q975":0.681865,"ci_width":0.12725,"reliability":"high","n_survey":24},{"state":"VA","age_group":"ALL","educ":"ALL","estimate":0.76336,"q025":0.725785,"q975":0.798181,"ci_width":0.072396,"reliability":"high","n_survey":100},{"state":"VA","age_group":"ALL","educ":"HS or less","estimate":0.813859,"q025":0.77365,"q975":0.850232,"ci_width":0.076583,"reliability":"high","n_survey":16},{"state":"VA","age_group":"ALL","educ":"Some College","estimate":0.803773,"q025":0.765768,"q975":0.838375,"ci_width":0.072607,"reliability":"high","n_survey":32},{"state":"VA","age_group":"ALL","educ":"BA/BS","estimate":0.703834,"q025":0.653435,"q975":0.749896,"ci_width":0.096461,"reliability":"high","n_survey":22},{"state":"VA","age_group":"ALL","educ":"Postgrad","estimate":0.66824,"q025":0.614582,"q975":0.718265,"ci_width":0.103683,"reliability":"high","n_survey":30}]},"country_offtrack":{"funnel_role":"grievance","lead_disclosure":"age_group","question_text":"Do you feel things in this country have gotten off on the wrong track?","positive_label":"% saying wrong track","national":{"estimate":0.781005,"q025":0.766226,"q975":0.795483,"ci_width":0.029256,"reliability":"high","n_survey":4841},"party":{"dem":55.8,"ind":87.3,"rep":94.8,"note":"% saying wrong track"},"slices":[{"state":"ALL","age_group":"18-24","educ":"ALL","estimate":0.849271,"q025":0.80212,"q975":0.891754,"ci_width":0.089634,"reliability":"high","n_survey":204},{"state":"ALL","age_group":"25-29","educ":"ALL","estimate":0.852123,"q025":0.811065,"q975":0.887703,"ci_width":0.076639,"reliability":"high","n_survey":301},{"state":"ALL","age_group":"30-34","educ":"ALL","estimate":0.812793,"q025":0.774622,"q975":0.848565,"ci_width":0.073943,"reliability":"high","n_survey":377},{"state":"ALL","age_group":"35-39","educ":"ALL","estimate":0.822364,"q025":0.786218,"q975":0.856392,"ci_width":0.070173,"reliability":"high","n_survey":419},{"state":"ALL","age_group":"40-44","educ":"ALL","estimate":0.769158,"q025":0.731693,"q975":0.805702,"ci_width":0.074009,"reliability":"high","n_survey":454},{"state":"ALL","age_group":"45-49","educ":"ALL","estimate":0.742957,"q025":0.699984,"q975":0.783422,"ci_width":0.083438,"reliability":"high","n_survey":376},{"state":"ALL","age_group":"50-54","educ":"ALL","estimate":0.768487,"q025":0.726642,"q975":0.809456,"ci_width":0.082814,"reliability":"high","n_survey":369},{"state":"ALL","age_group":"55-59","educ":"ALL","estimate":0.774918,"q025":0.73566,"q975":0.811994,"ci_width":0.076334,"reliability":"high","n_survey":385},{"state":"ALL","age_group":"60-64","educ":"ALL","estimate":0.713994,"q025":0.671956,"q975":0.753451,"ci_width":0.081495,"reliability":"high","n_survey":443},{"state":"ALL","age_group":"65-69","educ":"ALL","estimate":0.69452,"q025":0.654883,"q975":0.733279,"ci_width":0.078396,"reliability":"high","n_survey":479},{"state":"ALL","age_group":"70-74","educ":"ALL","estimate":0.684471,"q025":0.641197,"q975":0.72608,"ci_width":0.084883,"reliability":"high","n_survey":421},{"state":"ALL","age_group":"75-79","educ":"ALL","estimate":0.697085,"q025":0.648767,"q975":0.743282,"ci_width":0.094516,"reliability":"high","n_survey":318},{"state":"ALL","age_group":"80 plus","educ":"ALL","estimate":0.726795,"q025":0.676555,"q975":0.773829,"ci_width":0.097274,"reliability":"high","n_survey":295},{"state":"ALL","age_group":"ALL","educ":"HS or less","estimate":0.831023,"q025":0.806965,"q975":0.853362,"ci_width":0.046397,"reliability":"high","n_survey":1105},{"state":"ALL","age_group":"ALL","educ":"Some College","estimate":0.810509,"q025":0.787384,"q975":0.832085,"ci_width":0.044701,"reliability":"high","n_survey":1533},{"state":"ALL","age_group":"ALL","educ":"BA/BS","estimate":0.739533,"q025":0.714247,"q975":0.764483,"ci_width":0.050236,"reliability":"high","n_survey":1243},{"state":"ALL","age_group":"ALL","educ":"Postgrad","estimate":0.651176,"q025":0.620916,"q975":0.681234,"ci_width":0.060318,"reliability":"high","n_survey":960},{"state":"TX","age_group":"ALL","educ":"ALL","estimate":0.815104,"q025":0.783053,"q975":0.846765,"ci_width":0.063712,"reliability":"high","n_survey":375},{"state":"TX","age_group":"18-24","educ":"ALL","estimate":0.868902,"q025":0.82151,"q975":0.910011,"ci_width":0.088501,"reliability":"high","n_survey":25},{"state":"TX","age_group":"25-29","educ":"ALL","estimate":0.875596,"q025":0.832934,"q975":0.911519,"ci_width":0.078586,"reliability":"high","n_survey":34},{"state":"TX","age_group":"30-34","educ":"ALL","estimate":0.840738,"q025":0.797507,"q975":0.880281,"ci_width":0.082774,"reliability":"high","n_survey":29},{"state":"TX","age_group":"35-39","educ":"ALL","estimate":0.848152,"q025":0.806137,"q975":0.885599,"ci_width":0.079462,"reliability":"high","n_survey":34},{"state":"TX","age_group":"40-44","educ":"ALL","estimate":0.799706,"q025":0.752195,"q975":0.844521,"ci_width":0.092326,"reliability":"high","n_survey":40},{"state":"TX","age_group":"45-49","educ":"ALL","estimate":0.77462,"q025":0.718929,"q975":0.824946,"ci_width":0.106017,"reliability":"high","n_survey":29},{"state":"TX","age_group":"50-54","educ":"ALL","estimate":0.7975,"q025":0.747336,"q975":0.845172,"ci_width":0.097836,"reliability":"high","n_survey":24},{"state":"TX","age_group":"55-59","educ":"ALL","estimate":0.804235,"q025":0.756699,"q975":0.849415,"ci_width":0.092716,"reliability":"high","n_survey":30},{"state":"TX","age_group":"60-64","educ":"ALL","estimate":0.748059,"q025":0.693717,"q975":0.799641,"ci_width":0.105924,"reliability":"high","n_survey":35},{"state":"TX","age_group":"65-69","educ":"ALL","estimate":0.731533,"q025":0.677257,"q975":0.783548,"ci_width":0.106292,"reliability":"high","n_survey":34},{"state":"TX","age_group":"70-74","educ":"ALL","estimate":0.723887,"q025":0.667263,"q975":0.777185,"ci_width":0.109921,"reliability":"high","n_survey":29},{"state":"TX","age_group":"75-79","educ":"ALL","estimate":0.735749,"q025":0.673678,"q975":0.792684,"ci_width":0.119006,"reliability":"high","n_survey":15},{"state":"TX","age_group":"80 plus","educ":"ALL","estimate":0.761457,"q025":0.701209,"q975":0.816329,"ci_width":0.115121,"reliability":"high","n_survey":17},{"state":"CA","age_group":"ALL","educ":"ALL","estimate":0.76907,"q025":0.733247,"q975":0.803661,"ci_width":0.070414,"reliability":"high","n_survey":411},{"state":"CA","age_group":"18-24","educ":"ALL","estimate":0.837301,"q025":0.781025,"q975":0.88823,"ci_width":0.107204,"reliability":"high","n_survey":27},{"state":"CA","age_group":"25-29","educ":"ALL","estimate":0.844485,"q025":0.793461,"q975":0.888063,"ci_width":0.094602,"reliability":"high","n_survey":30},{"state":"CA","age_group":"30-34","educ":"ALL","estimate":0.802331,"q025":0.750836,"q975":0.848834,"ci_width":0.097998,"reliability":"high","n_survey":31},{"state":"CA","age_group":"35-39","educ":"ALL","estimate":0.812273,"q025":0.762936,"q975":0.857481,"ci_width":0.094545,"reliability":"high","n_survey":37},{"state":"CA","age_group":"40-44","educ":"ALL","estimate":0.755224,"q025":0.700179,"q975":0.806062,"ci_width":0.105883,"reliability":"high","n_survey":30},{"state":"CA","age_group":"45-49","educ":"ALL","estimate":0.72675,"q025":0.66901,"q975":0.780996,"ci_width":0.111986,"reliability":"high","n_survey":43},{"state":"CA","age_group":"50-54","educ":"ALL","estimate":0.754658,"q025":0.695746,"q975":0.807692,"ci_width":0.111946,"reliability":"high","n_survey":25},{"state":"CA","age_group":"55-59","educ":"ALL","estimate":0.75948,"q025":0.704141,"q975":0.811415,"ci_width":0.107274,"reliability":"high","n_survey":29},{"state":"CA","age_group":"60-64","educ":"ALL","estimate":0.695217,"q025":0.634469,"q975":0.752277,"ci_width":0.117808,"reliability":"high","n_survey":37},{"state":"CA","age_group":"65-69","educ":"ALL","estimate":0.675761,"q025":0.617368,"q975":0.733295,"ci_width":0.115927,"reliability":"high","n_survey":45},{"state":"CA","age_group":"70-74","educ":"ALL","estimate":0.66327,"q025":0.599396,"q975":0.72253,"ci_width":0.123134,"reliability":"high","n_survey":26},{"state":"CA","age_group":"75-79","educ":"ALL","estimate":0.672308,"q025":0.605478,"q975":0.734106,"ci_width":0.128628,"reliability":"high","n_survey":24},{"state":"CA","age_group":"80 plus","educ":"ALL","estimate":0.704828,"q025":0.636813,"q975":0.766437,"ci_width":0.129625,"reliability":"high","n_survey":27},{"state":"NY","age_group":"ALL","educ":"ALL","estimate":0.758913,"q025":0.712505,"q975":0.801363,"ci_width":0.088859,"reliability":"high","n_survey":200},{"state":"NY","age_group":"18-24","educ":"ALL","estimate":0.834433,"q025":0.771173,"q975":0.888663,"ci_width":0.11749,"reliability":"high","n_survey":6},{"state":"NY","age_group":"25-29","educ":"ALL","estimate":0.829275,"q025":0.770057,"q975":0.880112,"ci_width":0.110056,"reliability":"high","n_survey":9},{"state":"NY","age_group":"30-34","educ":"ALL","estimate":0.787384,"q025":0.726696,"q975":0.840985,"ci_width":0.114289,"reliability":"high","n_survey":18},{"state":"NY","age_group":"35-39","educ":"ALL","estimate":0.799841,"q025":0.741659,"q975":0.850308,"ci_width":0.108649,"reliability":"high","n_survey":14},{"state":"NY","age_group":"40-44","educ":"ALL","estimate":0.744962,"q025":0.683286,"q975":0.800465,"ci_width":0.117179,"reliability":"high","n_survey":19},{"state":"NY","age_group":"45-49","educ":"ALL","estimate":0.719083,"q025":0.650257,"q975":0.780587,"ci_width":0.13033,"reliability":"high","n_survey":17},{"state":"NY","age_group":"50-54","educ":"ALL","estimate":0.747424,"q025":0.680911,"q975":0.808031,"ci_width":0.12712,"reliability":"high","n_survey":10},{"state":"NY","age_group":"55-59","educ":"ALL","estimate":0.753866,"q025":0.69156,"q975":0.808611,"ci_width":0.11705,"reliability":"high","n_survey":21},{"state":"NY","age_group":"60-64","educ":"ALL","estimate":0.689624,"q025":0.620523,"q975":0.752166,"ci_width":0.131643,"reliability":"high","n_survey":21},{"state":"NY","age_group":"65-69","educ":"ALL","estimate":0.671157,"q025":0.602088,"q975":0.732613,"ci_width":0.130524,"reliability":"high","n_survey":22},{"state":"NY","age_group":"70-74","educ":"ALL","estimate":0.659863,"q025":0.590203,"q975":0.725719,"ci_width":0.135517,"reliability":"high","n_survey":22},{"state":"NY","age_group":"75-79","educ":"ALL","estimate":0.672439,"q025":0.596875,"q975":0.740176,"ci_width":0.143301,"reliability":"high","n_survey":9},{"state":"NY","age_group":"80 plus","educ":"ALL","estimate":0.705139,"q025":0.631351,"q975":0.769875,"ci_width":0.138524,"reliability":"high","n_survey":12},{"state":"FL","age_group":"ALL","educ":"ALL","estimate":0.783636,"q025":0.741568,"q975":0.819307,"ci_width":0.077739,"reliability":"high","n_survey":262},{"state":"FL","age_group":"18-24","educ":"ALL","estimate":0.854821,"q025":0.798361,"q975":0.901686,"ci_width":0.103325,"reliability":"high","n_survey":9},{"state":"FL","age_group":"25-29","educ":"ALL","estimate":0.859955,"q025":0.811738,"q975":0.900824,"ci_width":0.089087,"reliability":"high","n_survey":18},{"state":"FL","age_group":"30-34","educ":"ALL","estimate":0.821797,"q025":0.769619,"q975":0.865332,"ci_width":0.095713,"reliability":"high","n_survey":16},{"state":"FL","age_group":"35-39","educ":"ALL","estimate":0.829999,"q025":0.779453,"q975":0.872135,"ci_width":0.092682,"reliability":"high","n_survey":22},{"state":"FL","age_group":"40-44","educ":"ALL","estimate":0.777172,"q025":0.722177,"q975":0.825936,"ci_width":0.103759,"reliability":"high","n_survey":25},{"state":"FL","age_group":"45-49","educ":"ALL","estimate":0.751582,"q025":0.689806,"q975":0.806073,"ci_width":0.116267,"reliability":"high","n_survey":18},{"state":"FL","age_group":"50-54","educ":"ALL","estimate":0.777257,"q025":0.717085,"q975":0.829436,"ci_width":0.112351,"reliability":"high","n_survey":21},{"state":"FL","age_group":"55-59","educ":"ALL","estimate":0.782608,"q025":0.725669,"q975":0.831617,"ci_width":0.105949,"reliability":"high","n_survey":21},{"state":"FL","age_group":"60-64","educ":"ALL","estimate":0.723943,"q025":0.663251,"q975":0.780216,"ci_width":0.116965,"reliability":"high","n_survey":19},{"state":"FL","age_group":"65-69","educ":"ALL","estimate":0.705983,"q025":0.643104,"q975":0.76046,"ci_width":0.117356,"reliability":"high","n_survey":30},{"state":"FL","age_group":"70-74","educ":"ALL","estimate":0.699827,"q025":0.634866,"q975":0.757208,"ci_width":0.122343,"reliability":"high","n_survey":21},{"state":"FL","age_group":"75-79","educ":"ALL","estimate":0.710096,"q025":0.642155,"q975":0.771479,"ci_width":0.129324,"reliability":"high","n_survey":17},{"state":"FL","age_group":"80 plus","educ":"ALL","estimate":0.737181,"q025":0.671798,"q975":0.795026,"ci_width":0.123228,"reliability":"high","n_survey":25},{"state":"PA","age_group":"ALL","educ":"ALL","estimate":0.797441,"q025":0.755463,"q975":0.839183,"ci_width":0.08372,"reliability":"high","n_survey":189},{"state":"PA","age_group":"18-24","educ":"ALL","estimate":0.862757,"q025":0.805217,"q975":0.910484,"ci_width":0.105267,"reliability":"high","n_survey":2},{"state":"PA","age_group":"25-29","educ":"ALL","estimate":0.861603,"q025":0.810865,"q975":0.904358,"ci_width":0.093493,"reliability":"high","n_survey":11},{"state":"PA","age_group":"30-34","educ":"ALL","estimate":0.824805,"q025":0.771674,"q975":0.872074,"ci_width":0.1004,"reliability":"high","n_survey":16},{"state":"PA","age_group":"35-39","educ":"ALL","estimate":0.835787,"q025":0.785815,"q975":0.879959,"ci_width":0.094144,"reliability":"high","n_survey":18},{"state":"PA","age_group":"40-44","educ":"ALL","estimate":0.785521,"q025":0.730357,"q975":0.838561,"ci_width":0.108204,"reliability":"high","n_survey":16},{"state":"PA","age_group":"45-49","educ":"ALL","estimate":0.764143,"q025":0.703686,"q975":0.822022,"ci_width":0.118336,"reliability":"high","n_survey":17},{"state":"PA","age_group":"50-54","educ":"ALL","estimate":0.790602,"q025":0.731462,"q975":0.845048,"ci_width":0.113585,"reliability":"high","n_survey":11},{"state":"PA","age_group":"55-59","educ":"ALL","estimate":0.796471,"q025":0.739188,"q975":0.848944,"ci_width":0.109755,"reliability":"high","n_survey":12},{"state":"PA","age_group":"60-64","educ":"ALL","estimate":0.741836,"q025":0.68071,"q975":0.801365,"ci_width":0.120655,"reliability":"high","n_survey":18},{"state":"PA","age_group":"65-69","educ":"ALL","estimate":0.718931,"q025":0.655728,"q975":0.779649,"ci_width":0.123921,"reliability":"high","n_survey":21},{"state":"PA","age_group":"70-74","educ":"ALL","estimate":0.714363,"q025":0.648564,"q975":0.775283,"ci_width":0.126719,"reliability":"high","n_survey":23},{"state":"PA","age_group":"75-79","educ":"ALL","estimate":0.727357,"q025":0.659857,"q975":0.791016,"ci_width":0.131159,"reliability":"high","n_survey":14},{"state":"PA","age_group":"80 plus","educ":"ALL","estimate":0.756731,"q025":0.690472,"q975":0.817781,"ci_width":0.127309,"reliability":"high","n_survey":10},{"state":"OH","age_group":"ALL","educ":"ALL","estimate":0.795965,"q025":0.753251,"q975":0.842017,"ci_width":0.088767,"reliability":"high","n_survey":164},{"state":"OH","age_group":"18-24","educ":"ALL","estimate":0.86125,"q025":0.805115,"q975":0.909609,"ci_width":0.104494,"reliability":"high","n_survey":3},{"state":"OH","age_group":"25-29","educ":"ALL","estimate":0.864031,"q025":0.812098,"q975":0.908271,"ci_width":0.096173,"reliability":"high","n_survey":8},{"state":"OH","age_group":"30-34","educ":"ALL","estimate":0.826808,"q025":0.774741,"q975":0.877058,"ci_width":0.102317,"reliability":"high","n_survey":11},{"state":"OH","age_group":"35-39","educ":"ALL","estimate":0.836411,"q025":0.786561,"q975":0.883032,"ci_width":0.096472,"reliability":"high","n_survey":24},{"state":"OH","age_group":"40-44","educ":"ALL","estimate":0.787343,"q025":0.729251,"q975":0.842501,"ci_width":0.113251,"reliability":"high","n_survey":11},{"state":"OH","age_group":"45-49","educ":"ALL","estimate":0.762026,"q025":0.698282,"q975":0.824807,"ci_width":0.126525,"reliability":"high","n_survey":14},{"state":"OH","age_group":"50-54","educ":"ALL","estimate":0.785766,"q025":0.725812,"q975":0.843936,"ci_width":0.118123,"reliability":"high","n_survey":13},{"state":"OH","age_group":"55-59","educ":"ALL","estimate":0.793053,"q025":0.735226,"q975":0.850207,"ci_width":0.114981,"reliability":"high","n_survey":14},{"state":"OH","age_group":"60-64","educ":"ALL","estimate":0.734079,"q025":0.669724,"q975":0.797138,"ci_width":0.127414,"reliability":"high","n_survey":15},{"state":"OH","age_group":"65-69","educ":"ALL","estimate":0.714787,"q025":0.648544,"q975":0.780892,"ci_width":0.132348,"reliability":"high","n_survey":19},{"state":"OH","age_group":"70-74","educ":"ALL","estimate":0.703969,"q025":0.636441,"q975":0.771997,"ci_width":0.135556,"reliability":"high","n_survey":11},{"state":"OH","age_group":"75-79","educ":"ALL","estimate":0.719357,"q025":0.649256,"q975":0.787132,"ci_width":0.137876,"reliability":"high","n_survey":13},{"state":"OH","age_group":"80 plus","educ":"ALL","estimate":0.746973,"q025":0.676994,"q975":0.81482,"ci_width":0.137826,"reliability":"high","n_survey":8},{"state":"GA","age_group":"ALL","educ":"ALL","estimate":0.786001,"q025":0.73967,"q975":0.826544,"ci_width":0.086874,"reliability":"high","n_survey":153},{"state":"GA","age_group":"18-24","educ":"ALL","estimate":0.853265,"q025":0.793602,"q975":0.90277,"ci_width":0.109167,"reliability":"high","n_survey":5},{"state":"GA","age_group":"25-29","educ":"ALL","estimate":0.854106,"q025":0.799756,"q975":0.899042,"ci_width":0.099286,"reliability":"high","n_survey":8},{"state":"GA","age_group":"30-34","educ":"ALL","estimate":0.816384,"q025":0.759865,"q975":0.86386,"ci_width":0.103994,"reliability":"high","n_survey":11},{"state":"GA","age_group":"35-39","educ":"ALL","estimate":0.822984,"q025":0.769967,"q975":0.869767,"ci_width":0.0998,"reliability":"high","n_survey":12},{"state":"GA","age_group":"40-44","educ":"ALL","estimate":0.768464,"q025":0.707619,"q975":0.822578,"ci_width":0.11496,"reliability":"high","n_survey":9},{"state":"GA","age_group":"45-49","educ":"ALL","estimate":0.738695,"q025":0.673318,"q975":0.798881,"ci_width":0.125563,"reliability":"high","n_survey":10},{"state":"GA","age_group":"50-54","educ":"ALL","estimate":0.765768,"q025":0.701541,"q975":0.82332,"ci_width":0.121779,"reliability":"high","n_survey":16},{"state":"GA","age_group":"55-59","educ":"ALL","estimate":0.773342,"q025":0.712844,"q975":0.826645,"ci_width":0.113801,"reliability":"high","n_survey":17},{"state":"GA","age_group":"60-64","educ":"ALL","estimate":0.714856,"q025":0.647201,"q975":0.774952,"ci_width":0.127751,"reliability":"high","n_survey":10},{"state":"GA","age_group":"65-69","educ":"ALL","estimate":0.6992,"q025":0.63032,"q975":0.760658,"ci_width":0.130338,"reliability":"high","n_survey":18},{"state":"GA","age_group":"70-74","educ":"ALL","estimate":0.693165,"q025":0.623757,"q975":0.755888,"ci_width":0.13213,"reliability":"high","n_survey":14},{"state":"GA","age_group":"75-79","educ":"ALL","estimate":0.710455,"q025":0.637568,"q975":0.776313,"ci_width":0.138745,"reliability":"high","n_survey":12},{"state":"GA","age_group":"80 plus","educ":"ALL","estimate":0.740609,"q025":0.66791,"q975":0.80376,"ci_width":0.135849,"reliability":"high","n_survey":11},{"state":"AZ","age_group":"ALL","educ":"ALL","estimate":0.758558,"q025":0.702244,"q975":0.811271,"ci_width":0.109027,"reliability":"high","n_survey":95},{"state":"AZ","age_group":"18-24","educ":"ALL","estimate":0.835089,"q025":0.765285,"q975":0.89259,"ci_width":0.127305,"reliability":"high","n_survey":0},{"state":"AZ","age_group":"25-29","educ":"ALL","estimate":0.840698,"q025":0.779457,"q975":0.891643,"ci_width":0.112186,"reliability":"high","n_survey":10},{"state":"AZ","age_group":"30-34","educ":"ALL","estimate":0.799081,"q025":0.736372,"q975":0.855746,"ci_width":0.119373,"reliability":"high","n_survey":8},{"state":"AZ","age_group":"35-39","educ":"ALL","estimate":0.806649,"q025":0.742963,"q975":0.86076,"ci_width":0.117797,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"40-44","educ":"ALL","estimate":0.749316,"q025":0.677856,"q975":0.812562,"ci_width":0.134706,"reliability":"high","n_survey":5},{"state":"AZ","age_group":"45-49","educ":"ALL","estimate":0.719783,"q025":0.642122,"q975":0.788066,"ci_width":0.145944,"reliability":"high","n_survey":5},{"state":"AZ","age_group":"50-54","educ":"ALL","estimate":0.747205,"q025":0.676795,"q975":0.813018,"ci_width":0.136223,"reliability":"high","n_survey":9},{"state":"AZ","age_group":"55-59","educ":"ALL","estimate":0.75342,"q025":0.682858,"q975":0.817823,"ci_width":0.134965,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"60-64","educ":"ALL","estimate":0.687265,"q025":0.610153,"q975":0.76145,"ci_width":0.151297,"reliability":"medium","n_survey":12},{"state":"AZ","age_group":"65-69","educ":"ALL","estimate":0.667773,"q025":0.589753,"q975":0.741475,"ci_width":0.151722,"reliability":"medium","n_survey":10},{"state":"AZ","age_group":"70-74","educ":"ALL","estimate":0.655078,"q025":0.574897,"q975":0.730861,"ci_width":0.155964,"reliability":"medium","n_survey":12},{"state":"AZ","age_group":"75-79","educ":"ALL","estimate":0.668035,"q025":0.587301,"q975":0.747324,"ci_width":0.160023,"reliability":"medium","n_survey":6},{"state":"AZ","age_group":"80 plus","educ":"ALL","estimate":0.69459,"q025":0.611241,"q975":0.770846,"ci_width":0.159605,"reliability":"medium","n_survey":10},{"state":"WI","age_group":"ALL","educ":"ALL","estimate":0.764898,"q025":0.712692,"q975":0.810156,"ci_width":0.097464,"reliability":"high","n_survey":130},{"state":"WI","age_group":"18-24","educ":"ALL","estimate":0.829274,"q025":0.763802,"q975":0.885802,"ci_width":0.122,"reliability":"high","n_survey":3},{"state":"WI","age_group":"25-29","educ":"ALL","estimate":0.842496,"q025":0.783098,"q975":0.89155,"ci_width":0.108453,"reliability":"high","n_survey":5},{"state":"WI","age_group":"30-34","educ":"ALL","estimate":0.803637,"q025":0.743088,"q975":0.85491,"ci_width":0.111822,"reliability":"high","n_survey":15},{"state":"WI","age_group":"35-39","educ":"ALL","estimate":0.813682,"q025":0.756702,"q975":0.86356,"ci_width":0.106859,"reliability":"high","n_survey":11},{"state":"WI","age_group":"40-44","educ":"ALL","estimate":0.75784,"q025":0.694752,"q975":0.814217,"ci_width":0.119465,"reliability":"high","n_survey":8},{"state":"WI","age_group":"45-49","educ":"ALL","estimate":0.730573,"q025":0.658619,"q975":0.793907,"ci_width":0.135288,"reliability":"high","n_survey":5},{"state":"WI","age_group":"50-54","educ":"ALL","estimate":0.757771,"q025":0.688469,"q975":0.818379,"ci_width":0.12991,"reliability":"high","n_survey":11},{"state":"WI","age_group":"55-59","educ":"ALL","estimate":0.765255,"q025":0.701444,"q975":0.822232,"ci_width":0.120787,"reliability":"high","n_survey":11},{"state":"WI","age_group":"60-64","educ":"ALL","estimate":0.703698,"q025":0.633402,"q975":0.767207,"ci_width":0.133804,"reliability":"high","n_survey":22},{"state":"WI","age_group":"65-69","educ":"ALL","estimate":0.680023,"q025":0.606981,"q975":0.744824,"ci_width":0.137843,"reliability":"high","n_survey":14},{"state":"WI","age_group":"70-74","educ":"ALL","estimate":0.665262,"q025":0.589043,"q975":0.734062,"ci_width":0.145019,"reliability":"high","n_survey":10},{"state":"WI","age_group":"75-79","educ":"ALL","estimate":0.683919,"q025":0.604908,"q975":0.754617,"ci_width":0.149709,"reliability":"high","n_survey":12},{"state":"WI","age_group":"80 plus","educ":"ALL","estimate":0.71421,"q025":0.63467,"q975":0.783751,"ci_width":0.149081,"reliability":"high","n_survey":3},{"state":"NC","age_group":"ALL","educ":"ALL","estimate":0.791399,"q025":0.743521,"q975":0.832034,"ci_width":0.088513,"reliability":"high","n_survey":135},{"state":"NC","age_group":"18-24","educ":"ALL","estimate":0.860189,"q025":0.802678,"q975":0.907947,"ci_width":0.105269,"reliability":"high","n_survey":5},{"state":"NC","age_group":"25-29","educ":"ALL","estimate":0.861775,"q025":0.80776,"q975":0.904863,"ci_width":0.097102,"reliability":"high","n_survey":6},{"state":"NC","age_group":"30-34","educ":"ALL","estimate":0.823124,"q025":0.766,"q975":0.871357,"ci_width":0.105357,"reliability":"high","n_survey":12},{"state":"NC","age_group":"35-39","educ":"ALL","estimate":0.832429,"q025":0.777353,"q975":0.878573,"ci_width":0.10122,"reliability":"high","n_survey":12},{"state":"NC","age_group":"40-44","educ":"ALL","estimate":0.777685,"q025":0.716997,"q975":0.829129,"ci_width":0.112132,"reliability":"high","n_survey":20},{"state":"NC","age_group":"45-49","educ":"ALL","estimate":0.754279,"q025":0.688514,"q975":0.811635,"ci_width":0.123121,"reliability":"high","n_survey":13},{"state":"NC","age_group":"50-54","educ":"ALL","estimate":0.77841,"q025":0.713352,"q975":0.833963,"ci_width":0.120612,"reliability":"high","n_survey":11},{"state":"NC","age_group":"55-59","educ":"ALL","estimate":0.786291,"q025":0.724269,"q975":0.837851,"ci_width":0.113582,"reliability":"high","n_survey":9},{"state":"NC","age_group":"60-64","educ":"ALL","estimate":0.726758,"q025":0.658815,"q975":0.786303,"ci_width":0.127488,"reliability":"high","n_survey":13},{"state":"NC","age_group":"65-69","educ":"ALL","estimate":0.708113,"q025":0.637688,"q975":0.769882,"ci_width":0.132194,"reliability":"high","n_survey":13},{"state":"NC","age_group":"70-74","educ":"ALL","estimate":0.70028,"q025":0.628009,"q975":0.76432,"ci_width":0.13631,"reliability":"high","n_survey":9},{"state":"NC","age_group":"75-79","educ":"ALL","estimate":0.713993,"q025":0.639329,"q975":0.779482,"ci_width":0.140152,"reliability":"high","n_survey":7},{"state":"NC","age_group":"80 plus","educ":"ALL","estimate":0.742682,"q025":0.669979,"q975":0.80444,"ci_width":0.134461,"reliability":"high","n_survey":5},{"state":"MI","age_group":"ALL","educ":"ALL","estimate":0.778794,"q025":0.735447,"q975":0.820572,"ci_width":0.085125,"reliability":"high","n_survey":182},{"state":"MI","age_group":"18-24","educ":"ALL","estimate":0.849043,"q025":0.790785,"q975":0.898884,"ci_width":0.108099,"reliability":"high","n_survey":14},{"state":"MI","age_group":"25-29","educ":"ALL","estimate":0.853227,"q025":0.79998,"q975":0.898658,"ci_width":0.098678,"reliability":"high","n_survey":12},{"state":"MI","age_group":"30-34","educ":"ALL","estimate":0.816642,"q025":0.763637,"q975":0.86524,"ci_width":0.101604,"reliability":"high","n_survey":10},{"state":"MI","age_group":"35-39","educ":"ALL","estimate":0.827772,"q025":0.776129,"q975":0.874915,"ci_width":0.098787,"reliability":"high","n_survey":8},{"state":"MI","age_group":"40-44","educ":"ALL","estimate":0.772243,"q025":0.714191,"q975":0.824928,"ci_width":0.110738,"reliability":"high","n_survey":18},{"state":"MI","age_group":"45-49","educ":"ALL","estimate":0.742876,"q025":0.678986,"q975":0.801905,"ci_width":0.12292,"reliability":"high","n_survey":16},{"state":"MI","age_group":"50-54","educ":"ALL","estimate":0.7682,"q025":0.706663,"q975":0.826524,"ci_width":0.119861,"reliability":"high","n_survey":12},{"state":"MI","age_group":"55-59","educ":"ALL","estimate":0.776415,"q025":0.717538,"q975":0.83205,"ci_width":0.114511,"reliability":"high","n_survey":11},{"state":"MI","age_group":"60-64","educ":"ALL","estimate":0.714823,"q025":0.65043,"q975":0.776197,"ci_width":0.125767,"reliability":"high","n_survey":19},{"state":"MI","age_group":"65-69","educ":"ALL","estimate":0.693103,"q025":0.629067,"q975":0.755551,"ci_width":0.126484,"reliability":"high","n_survey":19},{"state":"MI","age_group":"70-74","educ":"ALL","estimate":0.680647,"q025":0.613049,"q975":0.745149,"ci_width":0.1321,"reliability":"high","n_survey":18},{"state":"MI","age_group":"75-79","educ":"ALL","estimate":0.691776,"q025":0.621722,"q975":0.760082,"ci_width":0.13836,"reliability":"high","n_survey":12},{"state":"MI","age_group":"80 plus","educ":"ALL","estimate":0.725661,"q025":0.655903,"q975":0.79132,"ci_width":0.135416,"reliability":"high","n_survey":13},{"state":"CO","age_group":"ALL","educ":"ALL","estimate":0.746548,"q025":0.686245,"q975":0.795302,"ci_width":0.109057,"reliability":"high","n_survey":103},{"state":"CO","age_group":"18-24","educ":"ALL","estimate":0.825217,"q025":0.754043,"q975":0.883575,"ci_width":0.129532,"reliability":"high","n_survey":1},{"state":"CO","age_group":"25-29","educ":"ALL","estimate":0.827977,"q025":0.761656,"q975":0.881965,"ci_width":0.120309,"reliability":"high","n_survey":4},{"state":"CO","age_group":"30-34","educ":"ALL","estimate":0.782239,"q025":0.714246,"q975":0.838447,"ci_width":0.124201,"reliability":"high","n_survey":13},{"state":"CO","age_group":"35-39","educ":"ALL","estimate":0.794369,"q025":0.728293,"q975":0.846879,"ci_width":0.118586,"reliability":"high","n_survey":10},{"state":"CO","age_group":"40-44","educ":"ALL","estimate":0.733754,"q025":0.660051,"q975":0.795911,"ci_width":0.13586,"reliability":"high","n_survey":13},{"state":"CO","age_group":"45-49","educ":"ALL","estimate":0.701774,"q025":0.623344,"q975":0.769822,"ci_width":0.146478,"reliability":"high","n_survey":5},{"state":"CO","age_group":"50-54","educ":"ALL","estimate":0.72858,"q025":0.650986,"q975":0.795547,"ci_width":0.144562,"reliability":"high","n_survey":10},{"state":"CO","age_group":"55-59","educ":"ALL","estimate":0.735236,"q025":0.661935,"q975":0.80026,"ci_width":0.138324,"reliability":"high","n_survey":8},{"state":"CO","age_group":"60-64","educ":"ALL","estimate":0.667089,"q025":0.586048,"q975":0.738906,"ci_width":0.152858,"reliability":"medium","n_survey":9},{"state":"CO","age_group":"65-69","educ":"ALL","estimate":0.644341,"q025":0.565077,"q975":0.718267,"ci_width":0.15319,"reliability":"medium","n_survey":6},{"state":"CO","age_group":"70-74","educ":"ALL","estimate":0.625275,"q025":0.543396,"q975":0.700021,"ci_width":0.156625,"reliability":"medium","n_survey":10},{"state":"CO","age_group":"75-79","educ":"ALL","estimate":0.637872,"q025":0.556758,"q975":0.714058,"ci_width":0.157299,"reliability":"medium","n_survey":11},{"state":"CO","age_group":"80 plus","educ":"ALL","estimate":0.674138,"q025":0.586163,"q975":0.750876,"ci_width":0.164713,"reliability":"medium","n_survey":3},{"state":"VA","age_group":"ALL","educ":"ALL","estimate":0.778408,"q025":0.724462,"q975":0.820483,"ci_width":0.096022,"reliability":"high","n_survey":132},{"state":"VA","age_group":"18-24","educ":"ALL","estimate":0.854113,"q025":0.789724,"q975":0.90418,"ci_width":0.114456,"reliability":"high","n_survey":3},{"state":"VA","age_group":"25-29","educ":"ALL","estimate":0.851036,"q025":0.791869,"q975":0.897708,"ci_width":0.105839,"reliability":"high","n_survey":5},{"state":"VA","age_group":"30-34","educ":"ALL","estimate":0.810939,"q025":0.747517,"q975":0.86063,"ci_width":0.113112,"reliability":"high","n_survey":9},{"state":"VA","age_group":"35-39","educ":"ALL","estimate":0.815551,"q025":0.756112,"q975":0.864485,"ci_width":0.108372,"reliability":"high","n_survey":10},{"state":"VA","age_group":"40-44","educ":"ALL","estimate":0.762303,"q025":0.695751,"q975":0.818433,"ci_width":0.122682,"reliability":"high","n_survey":15},{"state":"VA","age_group":"45-49","educ":"ALL","estimate":0.734632,"q025":0.662531,"q975":0.79629,"ci_width":0.133759,"reliability":"high","n_survey":14},{"state":"VA","age_group":"50-54","educ":"ALL","estimate":0.760127,"q025":0.689209,"q975":0.818933,"ci_width":0.129724,"reliability":"high","n_survey":15},{"state":"VA","age_group":"55-59","educ":"ALL","estimate":0.767883,"q025":0.699907,"q975":0.823643,"ci_width":0.123736,"reliability":"high","n_survey":7},{"state":"VA","age_group":"60-64","educ":"ALL","estimate":0.705123,"q025":0.628514,"q975":0.767181,"ci_width":0.138667,"reliability":"high","n_survey":10},{"state":"VA","age_group":"65-69","educ":"ALL","estimate":0.691041,"q025":0.614945,"q975":0.754095,"ci_width":0.13915,"reliability":"high","n_survey":17},{"state":"VA","age_group":"70-74","educ":"ALL","estimate":0.683331,"q025":0.608148,"q975":0.750629,"ci_width":0.142481,"reliability":"high","n_survey":10},{"state":"VA","age_group":"75-79","educ":"ALL","estimate":0.698596,"q025":0.61845,"q975":0.766077,"ci_width":0.147627,"reliability":"high","n_survey":10},{"state":"VA","age_group":"80 plus","educ":"ALL","estimate":0.727761,"q025":0.647912,"q975":0.79276,"ci_width":0.144847,"reliability":"high","n_survey":7}]},"gov_few_interests":{"funnel_role":"climax","lead_disclosure":"age_group","question_text":"Is the government run by a few big interests looking out for themselves, or for the benefit of all the people?","positive_label":"% saying a few big interests","national":{"estimate":0.818315,"q025":0.803565,"q975":0.832501,"ci_width":0.028936,"reliability":"high","n_survey":4840},"party":{"dem":77.8,"ind":80.2,"rep":89.2,"note":"% saying few big interests"},"slices":[{"state":"ALL","age_group":"18-24","educ":"ALL","estimate":0.813161,"q025":0.764538,"q975":0.856616,"ci_width":0.092078,"reliability":"high","n_survey":205},{"state":"ALL","age_group":"25-29","educ":"ALL","estimate":0.867654,"q025":0.828715,"q975":0.902719,"ci_width":0.074004,"reliability":"high","n_survey":304},{"state":"ALL","age_group":"30-34","educ":"ALL","estimate":0.859611,"q025":0.825243,"q975":0.891098,"ci_width":0.065855,"reliability":"high","n_survey":380},{"state":"ALL","age_group":"35-39","educ":"ALL","estimate":0.847289,"q025":0.812421,"q975":0.880173,"ci_width":0.067752,"reliability":"high","n_survey":419},{"state":"ALL","age_group":"40-44","educ":"ALL","estimate":0.842908,"q025":0.808188,"q975":0.874989,"ci_width":0.066801,"reliability":"high","n_survey":455},{"state":"ALL","age_group":"45-49","educ":"ALL","estimate":0.808287,"q025":0.767534,"q975":0.845706,"ci_width":0.078172,"reliability":"high","n_survey":377},{"state":"ALL","age_group":"50-54","educ":"ALL","estimate":0.796358,"q025":0.75552,"q975":0.834555,"ci_width":0.079035,"reliability":"high","n_survey":370},{"state":"ALL","age_group":"55-59","educ":"ALL","estimate":0.823517,"q025":0.78584,"q975":0.859007,"ci_width":0.073167,"reliability":"high","n_survey":382},{"state":"ALL","age_group":"60-64","educ":"ALL","estimate":0.806549,"q025":0.77106,"q975":0.839709,"ci_width":0.06865,"reliability":"high","n_survey":443},{"state":"ALL","age_group":"65-69","educ":"ALL","estimate":0.790878,"q025":0.753694,"q975":0.826267,"ci_width":0.072573,"reliability":"high","n_survey":478},{"state":"ALL","age_group":"70-74","educ":"ALL","estimate":0.783469,"q025":0.745477,"q975":0.820312,"ci_width":0.074835,"reliability":"high","n_survey":418},{"state":"ALL","age_group":"75-79","educ":"ALL","estimate":0.795434,"q025":0.751672,"q975":0.835104,"ci_width":0.083433,"reliability":"high","n_survey":320},{"state":"ALL","age_group":"80 plus","educ":"ALL","estimate":0.759852,"q025":0.710378,"q975":0.805639,"ci_width":0.095262,"reliability":"high","n_survey":289},{"state":"ALL","age_group":"ALL","educ":"HS or less","estimate":0.806396,"q025":0.781474,"q975":0.830365,"ci_width":0.048891,"reliability":"high","n_survey":1107},{"state":"ALL","age_group":"ALL","educ":"Some College","estimate":0.845158,"q025":0.823081,"q975":0.866054,"ci_width":0.042973,"reliability":"high","n_survey":1534},{"state":"ALL","age_group":"ALL","educ":"BA/BS","estimate":0.834398,"q025":0.812649,"q975":0.855479,"ci_width":0.04283,"reliability":"high","n_survey":1240},{"state":"ALL","age_group":"ALL","educ":"Postgrad","estimate":0.781077,"q025":0.753157,"q975":0.8078,"ci_width":0.054642,"reliability":"high","n_survey":959},{"state":"TX","age_group":"ALL","educ":"ALL","estimate":0.799633,"q025":0.762716,"q975":0.83198,"ci_width":0.069264,"reliability":"high","n_survey":378},{"state":"TX","age_group":"18-24","educ":"ALL","estimate":0.787926,"q025":0.725343,"q975":0.842884,"ci_width":0.117541,"reliability":"high","n_survey":25},{"state":"TX","age_group":"25-29","educ":"ALL","estimate":0.853292,"q025":0.80178,"q975":0.896035,"ci_width":0.094255,"reliability":"high","n_survey":34},{"state":"TX","age_group":"30-34","educ":"ALL","estimate":0.844647,"q025":0.797604,"q975":0.885196,"ci_width":0.087592,"reliability":"high","n_survey":29},{"state":"TX","age_group":"35-39","educ":"ALL","estimate":0.830538,"q025":0.779923,"q975":0.873652,"ci_width":0.093729,"reliability":"high","n_survey":33},{"state":"TX","age_group":"40-44","educ":"ALL","estimate":0.824776,"q025":0.776864,"q975":0.866706,"ci_width":0.089842,"reliability":"high","n_survey":41},{"state":"TX","age_group":"45-49","educ":"ALL","estimate":0.786611,"q025":0.727242,"q975":0.83635,"ci_width":0.109109,"reliability":"high","n_survey":28},{"state":"TX","age_group":"50-54","educ":"ALL","estimate":0.772955,"q025":0.713933,"q975":0.823812,"ci_width":0.109879,"reliability":"high","n_survey":24},{"state":"TX","age_group":"55-59","educ":"ALL","estimate":0.80318,"q025":0.749191,"q975":0.85001,"ci_width":0.10082,"reliability":"high","n_survey":30},{"state":"TX","age_group":"60-64","educ":"ALL","estimate":0.784972,"q025":0.732671,"q975":0.831051,"ci_width":0.09838,"reliability":"high","n_survey":35},{"state":"TX","age_group":"65-69","educ":"ALL","estimate":0.768132,"q025":0.710811,"q975":0.817109,"ci_width":0.106298,"reliability":"high","n_survey":35},{"state":"TX","age_group":"70-74","educ":"ALL","estimate":0.761762,"q025":0.70611,"q975":0.811013,"ci_width":0.104903,"reliability":"high","n_survey":32},{"state":"TX","age_group":"75-79","educ":"ALL","estimate":0.775789,"q025":0.716441,"q975":0.828347,"ci_width":0.111905,"reliability":"high","n_survey":15},{"state":"TX","age_group":"80 plus","educ":"ALL","estimate":0.738969,"q025":0.67214,"q975":0.797559,"ci_width":0.125419,"reliability":"high","n_survey":17},{"state":"CA","age_group":"ALL","educ":"ALL","estimate":0.789846,"q025":0.755382,"q975":0.820801,"ci_width":0.065419,"reliability":"high","n_survey":413},{"state":"CA","age_group":"18-24","educ":"ALL","estimate":0.787909,"q025":0.725532,"q975":0.84248,"ci_width":0.116948,"reliability":"high","n_survey":27},{"state":"CA","age_group":"25-29","educ":"ALL","estimate":0.846188,"q025":0.794055,"q975":0.889895,"ci_width":0.095839,"reliability":"high","n_survey":30},{"state":"CA","age_group":"30-34","educ":"ALL","estimate":0.836606,"q025":0.788848,"q975":0.877497,"ci_width":0.088649,"reliability":"high","n_survey":32},{"state":"CA","age_group":"35-39","educ":"ALL","estimate":0.821577,"q025":0.771666,"q975":0.866031,"ci_width":0.094365,"reliability":"high","n_survey":37},{"state":"CA","age_group":"40-44","educ":"ALL","estimate":0.815332,"q025":0.766591,"q975":0.859725,"ci_width":0.093134,"reliability":"high","n_survey":30},{"state":"CA","age_group":"45-49","educ":"ALL","estimate":0.773728,"q025":0.719063,"q975":0.824453,"ci_width":0.105391,"reliability":"high","n_survey":43},{"state":"CA","age_group":"50-54","educ":"ALL","estimate":0.76022,"q025":0.701268,"q975":0.813599,"ci_width":0.11233,"reliability":"high","n_survey":26},{"state":"CA","age_group":"55-59","educ":"ALL","estimate":0.790697,"q025":0.736329,"q975":0.838215,"ci_width":0.101886,"reliability":"high","n_survey":29},{"state":"CA","age_group":"60-64","educ":"ALL","estimate":0.771874,"q025":0.717398,"q975":0.818642,"ci_width":0.101244,"reliability":"high","n_survey":38},{"state":"CA","age_group":"65-69","educ":"ALL","estimate":0.753936,"q025":0.698842,"q975":0.804604,"ci_width":0.105762,"reliability":"high","n_survey":45},{"state":"CA","age_group":"70-74","educ":"ALL","estimate":0.746752,"q025":0.69115,"q975":0.798576,"ci_width":0.107426,"reliability":"high","n_survey":25},{"state":"CA","age_group":"75-79","educ":"ALL","estimate":0.760146,"q025":0.700562,"q975":0.812493,"ci_width":0.111931,"reliability":"high","n_survey":25},{"state":"CA","age_group":"80 plus","educ":"ALL","estimate":0.720173,"q025":0.653889,"q975":0.780916,"ci_width":0.127028,"reliability":"high","n_survey":26},{"state":"NY","age_group":"ALL","educ":"ALL","estimate":0.789923,"q025":0.737601,"q975":0.828461,"ci_width":0.09086,"reliability":"high","n_survey":198},{"state":"NY","age_group":"18-24","educ":"ALL","estimate":0.793182,"q025":0.722464,"q975":0.852635,"ci_width":0.130171,"reliability":"high","n_survey":6},{"state":"NY","age_group":"25-29","educ":"ALL","estimate":0.844884,"q025":0.782372,"q975":0.893254,"ci_width":0.110882,"reliability":"high","n_survey":9},{"state":"NY","age_group":"30-34","educ":"ALL","estimate":0.835234,"q025":0.777735,"q975":0.879923,"ci_width":0.102187,"reliability":"high","n_survey":18},{"state":"NY","age_group":"35-39","educ":"ALL","estimate":0.820622,"q025":0.759928,"q975":0.868702,"ci_width":0.108774,"reliability":"high","n_survey":14},{"state":"NY","age_group":"40-44","educ":"ALL","estimate":0.815321,"q025":0.75471,"q975":0.863814,"ci_width":0.109104,"reliability":"high","n_survey":19},{"state":"NY","age_group":"45-49","educ":"ALL","estimate":0.776817,"q025":0.709496,"q975":0.830845,"ci_width":0.121349,"reliability":"high","n_survey":17},{"state":"NY","age_group":"50-54","educ":"ALL","estimate":0.763609,"q025":0.691948,"q975":0.822626,"ci_width":0.130678,"reliability":"high","n_survey":10},{"state":"NY","age_group":"55-59","educ":"ALL","estimate":0.792137,"q025":0.725178,"q975":0.845786,"ci_width":0.120607,"reliability":"high","n_survey":21},{"state":"NY","age_group":"60-64","educ":"ALL","estimate":0.772799,"q025":0.707288,"q975":0.825604,"ci_width":0.118315,"reliability":"high","n_survey":21},{"state":"NY","age_group":"65-69","educ":"ALL","estimate":0.754702,"q025":0.683441,"q975":0.811014,"ci_width":0.127573,"reliability":"high","n_survey":22},{"state":"NY","age_group":"70-74","educ":"ALL","estimate":0.744948,"q025":0.673431,"q975":0.803829,"ci_width":0.130398,"reliability":"high","n_survey":21},{"state":"NY","age_group":"75-79","educ":"ALL","estimate":0.75762,"q025":0.681707,"q975":0.818416,"ci_width":0.136709,"reliability":"high","n_survey":9},{"state":"NY","age_group":"80 plus","educ":"ALL","estimate":0.721415,"q025":0.641065,"q975":0.788377,"ci_width":0.147312,"reliability":"high","n_survey":11},{"state":"FL","age_group":"ALL","educ":"ALL","estimate":0.820037,"q025":0.785272,"q975":0.854595,"ci_width":0.069323,"reliability":"high","n_survey":262},{"state":"FL","age_group":"18-24","educ":"ALL","estimate":0.81588,"q025":0.75574,"q975":0.868606,"ci_width":0.112867,"reliability":"high","n_survey":9},{"state":"FL","age_group":"25-29","educ":"ALL","estimate":0.870349,"q025":0.824799,"q975":0.910514,"ci_width":0.085714,"reliability":"high","n_survey":18},{"state":"FL","age_group":"30-34","educ":"ALL","estimate":0.86201,"q025":0.818107,"q975":0.90121,"ci_width":0.083103,"reliability":"high","n_survey":16},{"state":"FL","age_group":"35-39","educ":"ALL","estimate":0.849501,"q025":0.803956,"q975":0.890774,"ci_width":0.086818,"reliability":"high","n_survey":23},{"state":"FL","age_group":"40-44","educ":"ALL","estimate":0.844818,"q025":0.798128,"q975":0.886345,"ci_width":0.088217,"reliability":"high","n_survey":25},{"state":"FL","age_group":"45-49","educ":"ALL","estimate":0.811302,"q025":0.758325,"q975":0.860152,"ci_width":0.101827,"reliability":"high","n_survey":18},{"state":"FL","age_group":"50-54","educ":"ALL","estimate":0.799425,"q025":0.744257,"q975":0.847918,"ci_width":0.10366,"reliability":"high","n_survey":20},{"state":"FL","age_group":"55-59","educ":"ALL","estimate":0.827152,"q025":0.778016,"q975":0.87151,"ci_width":0.093493,"reliability":"high","n_survey":21},{"state":"FL","age_group":"60-64","educ":"ALL","estimate":0.811818,"q025":0.762283,"q975":0.858375,"ci_width":0.096092,"reliability":"high","n_survey":19},{"state":"FL","age_group":"65-69","educ":"ALL","estimate":0.797496,"q025":0.747446,"q975":0.844901,"ci_width":0.097455,"reliability":"high","n_survey":30},{"state":"FL","age_group":"70-74","educ":"ALL","estimate":0.793334,"q025":0.741982,"q975":0.841375,"ci_width":0.099393,"reliability":"high","n_survey":21},{"state":"FL","age_group":"75-79","educ":"ALL","estimate":0.80416,"q025":0.749924,"q975":0.853323,"ci_width":0.103399,"reliability":"high","n_survey":17},{"state":"FL","age_group":"80 plus","educ":"ALL","estimate":0.767643,"q025":0.704624,"q975":0.824548,"ci_width":0.119924,"reliability":"high","n_survey":25},{"state":"PA","age_group":"ALL","educ":"ALL","estimate":0.844928,"q025":0.808489,"q975":0.886036,"ci_width":0.077547,"reliability":"high","n_survey":187},{"state":"PA","age_group":"18-24","educ":"ALL","estimate":0.839378,"q025":0.780744,"q975":0.894512,"ci_width":0.113768,"reliability":"high","n_survey":2},{"state":"PA","age_group":"25-29","educ":"ALL","estimate":0.888308,"q025":0.842815,"q975":0.928451,"ci_width":0.085636,"reliability":"high","n_survey":11},{"state":"PA","age_group":"30-34","educ":"ALL","estimate":0.881681,"q025":0.838597,"q975":0.921811,"ci_width":0.083214,"reliability":"high","n_survey":16},{"state":"PA","age_group":"35-39","educ":"ALL","estimate":0.872581,"q025":0.828271,"q975":0.913373,"ci_width":0.085102,"reliability":"high","n_survey":17},{"state":"PA","age_group":"40-44","educ":"ALL","estimate":0.869579,"q025":0.825314,"q975":0.911336,"ci_width":0.086022,"reliability":"high","n_survey":16},{"state":"PA","age_group":"45-49","educ":"ALL","estimate":0.840442,"q025":0.788975,"q975":0.890097,"ci_width":0.101122,"reliability":"high","n_survey":17},{"state":"PA","age_group":"50-54","educ":"ALL","estimate":0.83004,"q025":0.777416,"q975":0.882041,"ci_width":0.104625,"reliability":"high","n_survey":11},{"state":"PA","age_group":"55-59","educ":"ALL","estimate":0.852042,"q025":0.803967,"q975":0.899755,"ci_width":0.095788,"reliability":"high","n_survey":12},{"state":"PA","age_group":"60-64","educ":"ALL","estimate":0.836946,"q025":0.786875,"q975":0.885209,"ci_width":0.098335,"reliability":"high","n_survey":18},{"state":"PA","age_group":"65-69","educ":"ALL","estimate":0.820994,"q025":0.768597,"q975":0.873532,"ci_width":0.104934,"reliability":"high","n_survey":21},{"state":"PA","age_group":"70-74","educ":"ALL","estimate":0.813822,"q025":0.758251,"q975":0.866227,"ci_width":0.107975,"reliability":"high","n_survey":22},{"state":"PA","age_group":"75-79","educ":"ALL","estimate":0.824314,"q025":0.767322,"q975":0.87992,"ci_width":0.112598,"reliability":"high","n_survey":13},{"state":"PA","age_group":"80 plus","educ":"ALL","estimate":0.79319,"q025":0.727036,"q975":0.856627,"ci_width":0.129591,"reliability":"high","n_survey":11},{"state":"OH","age_group":"ALL","educ":"ALL","estimate":0.840511,"q025":0.806908,"q975":0.876658,"ci_width":0.06975,"reliability":"high","n_survey":164},{"state":"OH","age_group":"18-24","educ":"ALL","estimate":0.835381,"q025":0.779558,"q975":0.885503,"ci_width":0.105945,"reliability":"high","n_survey":3},{"state":"OH","age_group":"25-29","educ":"ALL","estimate":0.886654,"q025":0.844109,"q975":0.92395,"ci_width":0.079841,"reliability":"high","n_survey":8},{"state":"OH","age_group":"30-34","educ":"ALL","estimate":0.879924,"q025":0.838816,"q975":0.916244,"ci_width":0.077428,"reliability":"high","n_survey":11},{"state":"OH","age_group":"35-39","educ":"ALL","estimate":0.870141,"q025":0.828852,"q975":0.907178,"ci_width":0.078326,"reliability":"high","n_survey":24},{"state":"OH","age_group":"40-44","educ":"ALL","estimate":0.867842,"q025":0.827178,"q975":0.905764,"ci_width":0.078587,"reliability":"high","n_survey":12},{"state":"OH","age_group":"45-49","educ":"ALL","estimate":0.837234,"q025":0.788265,"q975":0.883835,"ci_width":0.09557,"reliability":"high","n_survey":14},{"state":"OH","age_group":"50-54","educ":"ALL","estimate":0.825283,"q025":0.773769,"q975":0.872591,"ci_width":0.098822,"reliability":"high","n_survey":13},{"state":"OH","age_group":"55-59","educ":"ALL","estimate":0.847184,"q025":0.799166,"q975":0.891452,"ci_width":0.092286,"reliability":"high","n_survey":13},{"state":"OH","age_group":"60-64","educ":"ALL","estimate":0.82972,"q025":0.783261,"q975":0.874804,"ci_width":0.091543,"reliability":"high","n_survey":15},{"state":"OH","age_group":"65-69","educ":"ALL","estimate":0.813852,"q025":0.764522,"q975":0.863457,"ci_width":0.098935,"reliability":"high","n_survey":19},{"state":"OH","age_group":"70-74","educ":"ALL","estimate":0.805254,"q025":0.752071,"q975":0.855751,"ci_width":0.10368,"reliability":"high","n_survey":11},{"state":"OH","age_group":"75-79","educ":"ALL","estimate":0.816103,"q025":0.760576,"q975":0.86718,"ci_width":0.106604,"reliability":"high","n_survey":13},{"state":"OH","age_group":"80 plus","educ":"ALL","estimate":0.782836,"q025":0.71927,"q975":0.84201,"ci_width":0.12274,"reliability":"high","n_survey":8},{"state":"GA","age_group":"ALL","educ":"ALL","estimate":0.817542,"q025":0.779259,"q975":0.857045,"ci_width":0.077785,"reliability":"high","n_survey":152},{"state":"GA","age_group":"18-24","educ":"ALL","estimate":0.812357,"q025":0.752316,"q975":0.86899,"ci_width":0.116675,"reliability":"high","n_survey":5},{"state":"GA","age_group":"25-29","educ":"ALL","estimate":0.866982,"q025":0.817981,"q975":0.909768,"ci_width":0.091787,"reliability":"high","n_survey":8},{"state":"GA","age_group":"30-34","educ":"ALL","estimate":0.858842,"q025":0.812865,"q975":0.901132,"ci_width":0.088267,"reliability":"high","n_survey":11},{"state":"GA","age_group":"35-39","educ":"ALL","estimate":0.844184,"q025":0.795434,"q975":0.88892,"ci_width":0.093486,"reliability":"high","n_survey":12},{"state":"GA","age_group":"40-44","educ":"ALL","estimate":0.839538,"q025":0.790155,"q975":0.884279,"ci_width":0.094124,"reliability":"high","n_survey":9},{"state":"GA","age_group":"45-49","educ":"ALL","estimate":0.804875,"q025":0.749139,"q975":0.856893,"ci_width":0.107754,"reliability":"high","n_survey":10},{"state":"GA","age_group":"50-54","educ":"ALL","estimate":0.793452,"q025":0.736872,"q975":0.84641,"ci_width":0.109539,"reliability":"high","n_survey":16},{"state":"GA","age_group":"55-59","educ":"ALL","estimate":0.819801,"q025":0.769184,"q975":0.867069,"ci_width":0.097884,"reliability":"high","n_survey":17},{"state":"GA","age_group":"60-64","educ":"ALL","estimate":0.802804,"q025":0.750973,"q975":0.852515,"ci_width":0.101542,"reliability":"high","n_survey":10},{"state":"GA","age_group":"65-69","educ":"ALL","estimate":0.78663,"q025":0.732816,"q975":0.840933,"ci_width":0.108118,"reliability":"high","n_survey":17},{"state":"GA","age_group":"70-74","educ":"ALL","estimate":0.783025,"q025":0.729341,"q975":0.836496,"ci_width":0.107155,"reliability":"high","n_survey":14},{"state":"GA","age_group":"75-79","educ":"ALL","estimate":0.797408,"q025":0.739336,"q975":0.851427,"ci_width":0.112091,"reliability":"high","n_survey":12},{"state":"GA","age_group":"80 plus","educ":"ALL","estimate":0.763621,"q025":0.697768,"q975":0.825857,"ci_width":0.128089,"reliability":"high","n_survey":11},{"state":"AZ","age_group":"ALL","educ":"ALL","estimate":0.816094,"q025":0.769434,"q975":0.855596,"ci_width":0.086161,"reliability":"high","n_survey":96},{"state":"AZ","age_group":"18-24","educ":"ALL","estimate":0.806277,"q025":0.737417,"q975":0.865091,"ci_width":0.127673,"reliability":"high","n_survey":0},{"state":"AZ","age_group":"25-29","educ":"ALL","estimate":0.864987,"q025":0.811755,"q975":0.908087,"ci_width":0.096332,"reliability":"high","n_survey":11},{"state":"AZ","age_group":"30-34","educ":"ALL","estimate":0.857874,"q025":0.806592,"q975":0.899295,"ci_width":0.092704,"reliability":"high","n_survey":8},{"state":"AZ","age_group":"35-39","educ":"ALL","estimate":0.846037,"q025":0.793126,"q975":0.889901,"ci_width":0.096775,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"40-44","educ":"ALL","estimate":0.840915,"q025":0.7889,"q975":0.885972,"ci_width":0.097072,"reliability":"high","n_survey":5},{"state":"AZ","age_group":"45-49","educ":"ALL","estimate":0.80662,"q025":0.743856,"q975":0.859287,"ci_width":0.115431,"reliability":"high","n_survey":5},{"state":"AZ","age_group":"50-54","educ":"ALL","estimate":0.794972,"q025":0.728168,"q975":0.850055,"ci_width":0.121886,"reliability":"high","n_survey":9},{"state":"AZ","age_group":"55-59","educ":"ALL","estimate":0.823391,"q025":0.764783,"q975":0.874061,"ci_width":0.109278,"reliability":"high","n_survey":4},{"state":"AZ","age_group":"60-64","educ":"ALL","estimate":0.808125,"q025":0.750204,"q975":0.858253,"ci_width":0.108049,"reliability":"high","n_survey":12},{"state":"AZ","age_group":"65-69","educ":"ALL","estimate":0.794732,"q025":0.732327,"q975":0.845525,"ci_width":0.113199,"reliability":"high","n_survey":10},{"state":"AZ","age_group":"70-74","educ":"ALL","estimate":0.788202,"q025":0.725611,"q975":0.841358,"ci_width":0.115746,"reliability":"high","n_survey":12},{"state":"AZ","age_group":"75-79","educ":"ALL","estimate":0.800879,"q025":0.736384,"q975":0.854697,"ci_width":0.118313,"reliability":"high","n_survey":6},{"state":"AZ","age_group":"80 plus","educ":"ALL","estimate":0.76345,"q025":0.689893,"q975":0.825056,"ci_width":0.135163,"reliability":"high","n_survey":10},{"state":"WI","age_group":"ALL","educ":"ALL","estimate":0.824093,"q025":0.775054,"q975":0.857556,"ci_width":0.082501,"reliability":"high","n_survey":129},{"state":"WI","age_group":"18-24","educ":"ALL","estimate":0.81033,"q025":0.740384,"q975":0.864646,"ci_width":0.124262,"reliability":"high","n_survey":3},{"state":"WI","age_group":"25-29","educ":"ALL","estimate":0.87362,"q025":0.818505,"q975":0.914072,"ci_width":0.095566,"reliability":"high","n_survey":5},{"state":"WI","age_group":"30-34","educ":"ALL","estimate":0.868223,"q025":0.817277,"q975":0.906014,"ci_width":0.088737,"reliability":"high","n_survey":15},{"state":"WI","age_group":"35-39","educ":"ALL","estimate":0.856801,"q025":0.802692,"q975":0.896909,"ci_width":0.094216,"reliability":"high","n_survey":11},{"state":"WI","age_group":"40-44","educ":"ALL","estimate":0.853683,"q025":0.802895,"q975":0.892899,"ci_width":0.090004,"reliability":"high","n_survey":8},{"state":"WI","age_group":"45-49","educ":"ALL","estimate":0.820735,"q025":0.760791,"q975":0.867912,"ci_width":0.107121,"reliability":"high","n_survey":5},{"state":"WI","age_group":"50-54","educ":"ALL","estimate":0.810284,"q025":0.743585,"q975":0.859466,"ci_width":0.115881,"reliability":"high","n_survey":11},{"state":"WI","age_group":"55-59","educ":"ALL","estimate":0.834931,"q025":0.778894,"q975":0.878811,"ci_width":0.099917,"reliability":"high","n_survey":10},{"state":"WI","age_group":"60-64","educ":"ALL","estimate":0.817196,"q025":0.75853,"q975":0.862597,"ci_width":0.104067,"reliability":"high","n_survey":22},{"state":"WI","age_group":"65-69","educ":"ALL","estimate":0.799836,"q025":0.736387,"q975":0.847905,"ci_width":0.111518,"reliability":"high","n_survey":14},{"state":"WI","age_group":"70-74","educ":"ALL","estimate":0.789214,"q025":0.721767,"q975":0.840103,"ci_width":0.118335,"reliability":"high","n_survey":10},{"state":"WI","age_group":"75-79","educ":"ALL","estimate":0.801517,"q025":0.732571,"q975":0.853516,"ci_width":0.120945,"reliability":"high","n_survey":12},{"state":"WI","age_group":"80 plus","educ":"ALL","estimate":0.765706,"q025":0.686598,"q975":0.826727,"ci_width":0.140129,"reliability":"high","n_survey":3},{"state":"NC","age_group":"ALL","educ":"ALL","estimate":0.829637,"q025":0.791973,"q975":0.867313,"ci_width":0.07534,"reliability":"high","n_survey":135},{"state":"NC","age_group":"18-24","educ":"ALL","estimate":0.824518,"q025":0.766054,"q975":0.876683,"ci_width":0.110628,"reliability":"high","n_survey":5},{"state":"NC","age_group":"25-29","educ":"ALL","estimate":0.877905,"q025":0.831826,"q975":0.918406,"ci_width":0.08658,"reliability":"high","n_survey":6},{"state":"NC","age_group":"30-34","educ":"ALL","estimate":0.869295,"q025":0.825291,"q975":0.909346,"ci_width":0.084055,"reliability":"high","n_survey":12},{"state":"NC","age_group":"35-39","educ":"ALL","estimate":0.857341,"q025":0.810324,"q975":0.899597,"ci_width":0.089273,"reliability":"high","n_survey":12},{"state":"NC","age_group":"40-44","educ":"ALL","estimate":0.852237,"q025":0.806249,"q975":0.894018,"ci_width":0.087769,"reliability":"high","n_survey":20},{"state":"NC","age_group":"45-49","educ":"ALL","estimate":0.821799,"q025":0.768116,"q975":0.871023,"ci_width":0.102907,"reliability":"high","n_survey":13},{"state":"NC","age_group":"50-54","educ":"ALL","estimate":0.809809,"q025":0.754735,"q975":0.860999,"ci_width":0.106264,"reliability":"high","n_survey":11},{"state":"NC","age_group":"55-59","educ":"ALL","estimate":0.835891,"q025":0.784843,"q975":0.882105,"ci_width":0.097262,"reliability":"high","n_survey":9},{"state":"NC","age_group":"60-64","educ":"ALL","estimate":0.818202,"q025":0.767726,"q975":0.865904,"ci_width":0.098178,"reliability":"high","n_survey":13},{"state":"NC","age_group":"65-69","educ":"ALL","estimate":0.802813,"q025":0.749603,"q975":0.853702,"ci_width":0.104099,"reliability":"high","n_survey":13},{"state":"NC","age_group":"70-74","educ":"ALL","estimate":0.796605,"q025":0.742316,"q975":0.847796,"ci_width":0.10548,"reliability":"high","n_survey":9},{"state":"NC","age_group":"75-79","educ":"ALL","estimate":0.808973,"q025":0.751245,"q975":0.861521,"ci_width":0.110276,"reliability":"high","n_survey":7},{"state":"NC","age_group":"80 plus","educ":"ALL","estimate":0.775481,"q025":0.70992,"q975":0.837384,"ci_width":0.127464,"reliability":"high","n_survey":5},{"state":"MI","age_group":"ALL","educ":"ALL","estimate":0.827,"q025":0.789123,"q975":0.859396,"ci_width":0.070272,"reliability":"high","n_survey":180},{"state":"MI","age_group":"18-24","educ":"ALL","estimate":0.821089,"q025":0.760745,"q975":0.871974,"ci_width":0.11123,"reliability":"high","n_survey":14},{"state":"MI","age_group":"25-29","educ":"ALL","estimate":0.875911,"q025":0.828162,"q975":0.914544,"ci_width":0.086383,"reliability":"high","n_survey":12},{"state":"MI","age_group":"30-34","educ":"ALL","estimate":0.86994,"q025":0.826949,"q975":0.905376,"ci_width":0.078427,"reliability":"high","n_survey":10},{"state":"MI","age_group":"35-39","educ":"ALL","estimate":0.859847,"q025":0.81416,"q975":0.897921,"ci_width":0.083761,"reliability":"high","n_survey":8},{"state":"MI","age_group":"40-44","educ":"ALL","estimate":0.855097,"q025":0.809556,"q975":0.893989,"ci_width":0.084432,"reliability":"high","n_survey":18},{"state":"MI","age_group":"45-49","educ":"ALL","estimate":0.820385,"q025":0.769037,"q975":0.864733,"ci_width":0.095696,"reliability":"high","n_survey":17},{"state":"MI","age_group":"50-54","educ":"ALL","estimate":0.809119,"q025":0.751676,"q975":0.858395,"ci_width":0.106719,"reliability":"high","n_survey":11},{"state":"MI","age_group":"55-59","educ":"ALL","estimate":0.835302,"q025":0.783951,"q975":0.879027,"ci_width":0.095076,"reliability":"high","n_survey":11},{"state":"MI","age_group":"60-64","educ":"ALL","estimate":0.816984,"q025":0.76612,"q975":0.861272,"ci_width":0.095151,"reliability":"high","n_survey":19},{"state":"MI","age_group":"65-69","educ":"ALL","estimate":0.8002,"q025":0.745776,"q975":0.845568,"ci_width":0.099793,"reliability":"high","n_survey":19},{"state":"MI","age_group":"70-74","educ":"ALL","estimate":0.789914,"q025":0.732899,"q975":0.838639,"ci_width":0.105741,"reliability":"high","n_survey":17},{"state":"MI","age_group":"75-79","educ":"ALL","estimate":0.801443,"q025":0.742749,"q975":0.852117,"ci_width":0.109368,"reliability":"high","n_survey":11},{"state":"MI","age_group":"80 plus","educ":"ALL","estimate":0.767345,"q025":0.701741,"q975":0.825535,"ci_width":0.123794,"reliability":"high","n_survey":13},{"state":"CO","age_group":"ALL","educ":"ALL","estimate":0.837045,"q025":0.798107,"q975":0.879002,"ci_width":0.080895,"reliability":"high","n_survey":103},{"state":"CO","age_group":"18-24","educ":"ALL","estimate":0.82515,"q025":0.761335,"q975":0.881522,"ci_width":0.120187,"reliability":"high","n_survey":1},{"state":"CO","age_group":"25-29","educ":"ALL","estimate":0.883551,"q025":0.836205,"q975":0.924457,"ci_width":0.088251,"reliability":"high","n_survey":4},{"state":"CO","age_group":"30-34","educ":"ALL","estimate":0.87649,"q025":0.831411,"q975":0.916725,"ci_width":0.085314,"reliability":"high","n_survey":13},{"state":"CO","age_group":"35-39","educ":"ALL","estimate":0.864615,"q025":0.817547,"q975":0.907102,"ci_width":0.089555,"reliability":"high","n_survey":10},{"state":"CO","age_group":"40-44","educ":"ALL","estimate":0.860771,"q025":0.812912,"q975":0.904578,"ci_width":0.091666,"reliability":"high","n_survey":13},{"state":"CO","age_group":"45-49","educ":"ALL","estimate":0.828494,"q025":0.773637,"q975":0.881519,"ci_width":0.107882,"reliability":"high","n_survey":5},{"state":"CO","age_group":"50-54","educ":"ALL","estimate":0.815848,"q025":0.7604,"q975":0.870564,"ci_width":0.110164,"reliability":"high","n_survey":10},{"state":"CO","age_group":"55-59","educ":"ALL","estimate":0.8409,"q025":0.788059,"q975":0.889836,"ci_width":0.101777,"reliability":"high","n_survey":8},{"state":"CO","age_group":"60-64","educ":"ALL","estimate":0.825012,"q025":0.771079,"q975":0.876261,"ci_width":0.105182,"reliability":"high","n_survey":9},{"state":"CO","age_group":"65-69","educ":"ALL","estimate":0.809715,"q025":0.754195,"q975":0.863893,"ci_width":0.109698,"reliability":"high","n_survey":6},{"state":"CO","age_group":"70-74","educ":"ALL","estimate":0.800072,"q025":0.742835,"q975":0.856017,"ci_width":0.113182,"reliability":"high","n_survey":10},{"state":"CO","age_group":"75-79","educ":"ALL","estimate":0.809699,"q025":0.750856,"q975":0.866418,"ci_width":0.115562,"reliability":"high","n_survey":11},{"state":"CO","age_group":"80 plus","educ":"ALL","estimate":0.776525,"q025":0.708747,"q975":0.841995,"ci_width":0.133248,"reliability":"high","n_survey":3},{"state":"VA","age_group":"ALL","educ":"ALL","estimate":0.810019,"q025":0.761109,"q975":0.847016,"ci_width":0.085906,"reliability":"high","n_survey":131},{"state":"VA","age_group":"18-24","educ":"ALL","estimate":0.811256,"q025":0.745079,"q975":0.865434,"ci_width":0.120356,"reliability":"high","n_survey":3},{"state":"VA","age_group":"25-29","educ":"ALL","estimate":0.862782,"q025":0.807689,"q975":0.906923,"ci_width":0.099235,"reliability":"high","n_survey":5},{"state":"VA","age_group":"30-34","educ":"ALL","estimate":0.853107,"q025":0.800346,"q975":0.894849,"ci_width":0.094503,"reliability":"high","n_survey":9},{"state":"VA","age_group":"35-39","educ":"ALL","estimate":0.837405,"q025":0.782263,"q975":0.881782,"ci_width":0.099519,"reliability":"high","n_survey":10},{"state":"VA","age_group":"40-44","educ":"ALL","estimate":0.832755,"q025":0.777896,"q975":0.876383,"ci_width":0.098487,"reliability":"high","n_survey":15},{"state":"VA","age_group":"45-49","educ":"ALL","estimate":0.796904,"q025":0.73456,"q975":0.84742,"ci_width":0.11286,"reliability":"high","n_survey":14},{"state":"VA","age_group":"50-54","educ":"ALL","estimate":0.784431,"q025":0.717163,"q975":0.837727,"ci_width":0.120565,"reliability":"high","n_survey":15},{"state":"VA","age_group":"55-59","educ":"ALL","estimate":0.811962,"q025":0.750714,"q975":0.860694,"ci_width":0.109981,"reliability":"high","n_survey":7},{"state":"VA","age_group":"60-64","educ":"ALL","estimate":0.79303,"q025":0.731392,"q975":0.842347,"ci_width":0.110955,"reliability":"high","n_survey":10},{"state":"VA","age_group":"65-69","educ":"ALL","estimate":0.777643,"q025":0.713385,"q975":0.82845,"ci_width":0.115065,"reliability":"high","n_survey":16},{"state":"VA","age_group":"70-74","educ":"ALL","estimate":0.771749,"q025":0.706333,"q975":0.824833,"ci_width":0.1185,"reliability":"high","n_survey":10},{"state":"VA","age_group":"75-79","educ":"ALL","estimate":0.785001,"q025":0.716505,"q975":0.839532,"ci_width":0.123027,"reliability":"high","n_survey":10},{"state":"VA","age_group":"80 plus","educ":"ALL","estimate":0.749583,"q025":0.673386,"q975":0.811207,"ci_width":0.137821,"reliability":"high","n_survey":7}]}}};
+
+const QUESTION_ORDER = ["democracy_importance", "no_say", "country_offtrack", "gov_few_interests"];
+
+// `statement(pct, subject)` builds the sentence under the big number. `subject` is
+// derived from the attributes the matched slice ACTUALLY used, never from what the
+// user disclosed — so the caption can never over-claim the number's specificity.
+const QUESTION_META = {
+  democracy_importance: {
+    kicker: "Question 1 of 4",
+    answerOptions: [
+      { label: "Absolutely essential", value: "essential" },
+      { label: "Somewhat important", value: "somewhat" },
+      { label: "Not that important", value: "not_really" },
+    ],
+    statement: (pct, subj) => `${pct}% of ${subj} say it is important that the U.S. remains a democracy.`,
+    callout: "Near-consensus — but not evenly held. Independents sit well below the two parties.",
+    bridge: "So the goal isn't in dispute.<br>Does the system act like it?",
+  },
+  no_say: {
+    kicker: "Question 2 of 4",
+    answerOptions: [
+      { label: "Agree", value: "agree" },
+      { label: "Disagree", value: "disagree" },
+      { label: "Somewhere in between", value: "unsure" },
+    ],
+    statement: (pct, subj) => `${pct}% of ${subj} agree they don't have any say in what the government does.`,
+    callout: "The people who feel this most are not on either team.",
+    bridge: "If nobody feels heard,<br>where do people think this is going?",
+  },
+  country_offtrack: {
+    kicker: "Question 3 of 4",
+    answerOptions: [
+      { label: "Off on the wrong track", value: "wrong" },
+      { label: "Going in the right direction", value: "right" },
+      { label: "Somewhere in between", value: "unsure" },
+    ],
+    statement: (pct, subj) => `${pct}% of ${subj} feel the country has gotten off on the wrong track.`,
+    callout: "A majority in every party — though nowhere near equally.",
+    bridge: "Almost everyone thinks it's going wrong.<br>So who is it going right for?",
+  },
+  gov_few_interests: {
+    kicker: "Question 4 of 4",
+    answerOptions: [
+      { label: "A few big interests", value: "few" },
+      { label: "For the benefit of all", value: "all" },
+      { label: "Somewhere in between", value: "unsure" },
+    ],
+    statement: (pct, subj) => `${pct}% of ${subj} say government is run by a few big interests looking out for themselves.`,
+    callout: "Not a left position or a right position. The one thing everybody agrees on.",
+    bridge: null,
+  },
+};
+
+const STATE_NAMES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",DC:"District of Columbia",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming"};
+
+const EDUC_PHRASE = {
+  "HS or less": "a high school education or less",
+  "Some College": "some college",
+  "BA/BS": "a bachelor's degree",
+  "Postgrad": "a postgraduate degree",
+};
+
+const DIM_LABEL = { age_group: "age", educ: "education", state: "state" };
+
+// ---------- Option lists, derived from the bundle (never hardcoded) ----------
+
+function optionsFor(dim) {
+  const seen = new Set();
+  for (const qkey of QUESTION_ORDER) {
+    for (const s of BUNDLE.questions[qkey].slices) {
+      if (s[dim] && s[dim] !== "ALL") seen.add(s[dim]);
+    }
+  }
+  return Array.from(seen);
+}
+const AGE_GROUPS = optionsFor("age_group").sort();
+const EDUCS = optionsFor("educ").sort((a, b) => {
+  const ord = ["HS or less", "Some College", "BA/BS", "Postgrad"];
+  return ord.indexOf(a) - ord.indexOf(b);
+});
+const STATES = optionsFor("state").sort((a, b) =>
+  (STATE_NAMES[a] || a).localeCompare(STATE_NAMES[b] || b));
+
+// ---------- Slice lookup ----------
+
+const DIMS = ["state", "age_group", "educ"];
+const sliceIndex = {};
+const keyOf = (s, a, e) => `${s}|${a}|${e}`;
+
+function buildIndex() {
+  for (const qkey of QUESTION_ORDER) {
+    const qdata = BUNDLE.questions[qkey];
+    const map = new Map();
+    // The national row is the guaranteed terminal fallback: the empty attribute
+    // subset always resolves here, so findSlice can never fail to return a slice.
+    map.set(keyOf("ALL", "ALL", "ALL"), Object.assign({}, qdata.national,
+      { state: "ALL", age_group: "ALL", educ: "ALL" }));
+    for (const s of qdata.slices) map.set(keyOf(s.state, s.age_group, s.educ), s);
+    sliceIndex[qkey] = map;
+  }
+}
+
+// Pick the most specific slice that ACTUALLY EXISTS in the bundle.
+//
+// The bundle's deepest tier (state x age x educ) was trimmed for size, and no
+// question carries an (age x educ) tier either — so a strict "drop the most
+// recently disclosed attribute" walk collapses every post-Q1 screen back onto
+// the Q1 age slice and the number stops moving. Instead: enumerate every subset
+// of the disclosed attributes, keep only subsets with an exact map hit, and take
+// the largest; ties broken toward the most recently disclosed attribute. Every
+// returned value is still a verbatim bundle row, and the empty subset always
+// hits national, so this always terminates.
+function findSlice(qkey, attrs, order) {
+  const map = sliceIndex[qkey];
+  const keys = order.filter((k) => attrs[k]);
+  const rank = {};
+  keys.forEach((k, i) => { rank[k] = i; });
+
+  let best = null;
+  for (let mask = 0; mask < (1 << keys.length); mask++) {
+    const subset = keys.filter((_, i) => mask & (1 << i));
+    const cand = { state: "ALL", age_group: "ALL", educ: "ALL" };
+    subset.forEach((k) => { cand[k] = attrs[k]; });
+    const hit = map.get(keyOf(cand.state, cand.age_group, cand.educ));
+    if (!hit) continue;
+    let score = subset.length * 1000;
+    subset.forEach((k) => { score += Math.pow(2, rank[k]); });
+    if (!best || score > best.score) best = { hit: hit, subset: subset, score: score };
+  }
+
+  const matched = best.subset;
+  const newest = keys.length ? keys[keys.length - 1] : null;
+  const dropped = keys.filter((k) => matched.indexOf(k) === -1);
+  return Object.assign({}, best.hit, {
+    matchedAttrs: matched,
+    droppedAttrs: dropped,
+    droppedNewest: !!newest && matched.indexOf(newest) === -1,
+    newestAttr: newest,
+    requestedCount: keys.length,
+    level: matched.length === 0 ? "national" : (dropped.length === 0 ? "exact" : "partial"),
+  });
+}
+
+// Subject phrase built ONLY from the attributes the matched slice used.
+function subjectFor(slice) {
+  const m = slice.matchedAttrs || [];
+  if (!m.length) return "Americans";
+  let s = "Americans";
+  if (m.indexOf("age_group") !== -1) {
+    s += " aged " + (slice.age_group === "80 plus" ? "80+" : slice.age_group);
+  }
+  if (m.indexOf("educ") !== -1) {
+    s += " with " + (EDUC_PHRASE[slice.educ] || slice.educ);
+  }
+  if (m.indexOf("state") !== -1) {
+    s += " in " + (STATE_NAMES[slice.state] || slice.state);
+  }
+  return s;
+}
+
+// ---------- App state ----------
+
+const state = {
+  screenIdx: -1,
+  disclosureOrder: [],
+  disclosed: { age_group: null, educ: null, state: null },
+  answers: {},
+  seen: {},           // qkey -> {pct, subject} for the conversion recap
+};
+
+function buildScreens() {
+  const screens = [];
+  QUESTION_ORDER.forEach((qkey, qi) => {
+    screens.push({ type: "ask", qkey: qkey, qi: qi });
+    screens.push({ type: "reveal", qkey: qkey, qi: qi });
+    screens.push({ type: "sharpen", qkey: qkey, qi: qi, dim: BUNDLE.questions[qkey].lead_disclosure });
+    if (qkey === "no_say") screens.push({ type: "deepen", qkey: qkey, qi: qi });
+    if (QUESTION_META[qkey].bridge) screens.push({ type: "bridge", qkey: qkey, qi: qi });
+  });
+  screens.push({ type: "conversion" });
+  return screens;
+}
+const SCREENS = buildScreens();
+
+// Disclosures persist and accumulate across all four questions, so a sharpen or
+// deepen step whose dimension is already known is skipped rather than re-asked.
+function shouldSkip(screen) {
+  if (screen.type === "sharpen") return !!state.disclosed[screen.dim];
+  if (screen.type === "deepen") return !!state.disclosed.state || state.skippedState;
+  return false;
+}
+
+function advance() {
+  let idx = state.screenIdx + 1;
+  while (idx < SCREENS.length - 1 && shouldSkip(SCREENS[idx])) idx++;
+  state.screenIdx = idx;
+  render();
+  window.scrollTo(0, 0);
+}
+
+function disclose(dim, value) {
+  if (!state.disclosed[dim]) state.disclosureOrder.push(dim);
+  state.disclosed[dim] = value;
+}
+
+// ---------- Rendering helpers ----------
+
+const app = document.getElementById("app");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function pctStr(x) { return (x * 100).toFixed(1); }
+function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function progressDots(qi) {
+  let html = '<div class="progress" aria-hidden="true">';
+  for (let i = 0; i < QUESTION_ORDER.length; i++) {
+    html += '<div class="dot ' + (i < qi ? "done" : i === qi ? "current" : "") + '"></div>';
+  }
+  return html + "</div>";
+}
+
+function animateNumber(el, from, to, duration, done) {
+  if (reduceMotion || from === to) {
+    el.textContent = pctStr(to);
+    if (done) done();
+    return;
+  }
+  const start = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = pctStr(from + (to - from) * eased);
+    if (t < 1) requestAnimationFrame(tick);
+    else if (done) done();
+  }
+  requestAnimationFrame(tick);
+}
+
+// A note appears only when the slice is less specific than what the user told us.
+// The trimmed 3-attribute tier is expected, not an error, so a partial match that
+// still honours the newest disclosure gets a quiet aside, not a warning.
+function noteHtml(slice) {
+  // Nothing disclosed yet: the national figure is the answer, not a fallback.
+  if (!slice.requestedCount) return "";
+  if (slice.level === "exact") return "";
+  if (slice.level === "national") {
+    return '<div class="note">No breakdown available for this group — showing the national figure.</div>';
+  }
+  if (slice.droppedNewest) {
+    return '<div class="note">No separate estimate by ' + esc(DIM_LABEL[slice.newestAttr]) +
+      ' for this group — showing the closest available breakdown.</div>';
+  }
+  const labels = slice.droppedAttrs.map((d) => DIM_LABEL[d]).join(" and ");
+  return '<div class="note soft">Not broken out by ' + esc(labels) + ' at this level.</div>';
+}
+
+function ciBandHtml(slice) {
+  const lo = slice.q025 * 100, hi = slice.q975 * 100;
+  return '<div class="ci-track" aria-hidden="true"><div class="ci-fill" style="left:' +
+    Math.max(0, lo) + '%; width:' + Math.max(2, hi - lo) + '%;"></div></div>' +
+    '<div class="ci-band">Credible range ' + lo.toFixed(0) + '&ndash;' + hi.toFixed(0) +
+    '% &middot; ' + esc(slice.reliability) + ' reliability</div>';
+}
+
+function partyBarsHtml(qkey) {
+  const p = BUNDLE.questions[qkey].party;
+  const isNoSay = qkey === "no_say";
+  const rows = [
+    { key: "dem", label: "Dem", val: p.dem },
+    { key: "ind", label: "Ind", val: p.ind },
+    { key: "rep", label: "Rep", val: p.rep },
+  ];
+  let html = '<div class="party-heading">Nationally, by party &middot; ' + esc(p.note) + '</div><div class="party-bars">';
+  rows.forEach(function (r) {
+    html += '<div class="party-row ' + (isNoSay && r.key === "ind" ? "callout" : "") + '">' +
+      '<div class="party-label">' + r.label + '</div>' +
+      '<div class="party-track"><div class="party-fill ' + r.key + '" data-target="' + r.val + '" style="width:0"></div></div>' +
+      '<div class="party-val">' + r.val.toFixed(1) + '%</div></div>';
+  });
+  html += "</div>";
+  if (isNoSay) {
+    html += '<div class="party-callout">Independents agree more than either party — <strong>' +
+      p.ind.toFixed(1) + '%</strong>, against ' + p.dem.toFixed(1) + '% of Democrats and ' +
+      p.rep.toFixed(1) + '% of Republicans.</div>';
+  }
+  return html;
+}
+
+function animatePartyBars(container) {
+  const fills = container.querySelectorAll(".party-fill");
+  const paint = function () { fills.forEach(function (f) { f.style.width = f.dataset.target + "%"; }); };
+  if (reduceMotion) paint(); else requestAnimationFrame(paint);
+}
+
+// ---------- Screen renderers ----------
+
+function renderIntro() {
+  app.innerHTML =
+    '<div class="screen">' +
+      '<div class="eyebrow">MOVE / ALIGN</div>' +
+      '<h1 class="hero-title">Where does the country actually stand&nbsp;— and where do you?</h1>' +
+      '<p class="lede">Four questions. Then the real numbers, from a nationally representative survey. ' +
+      'Tell us a little about yourself along the way and watch them sharpen to people like you.</p>' +
+      '<div class="spacer"></div>' +
+      '<button class="btn-primary" id="start-btn">Start</button>' +
+      '<div class="footnote">Model-based estimates from ' + esc(BUNDLE.vintage) + '. Illustrative demo — nothing you enter is stored.</div>' +
+    '</div>';
+  document.getElementById("start-btn").addEventListener("click", function () { advance(); });
+}
+
+function renderAsk(screen) {
+  const meta = QUESTION_META[screen.qkey];
+  const qdata = BUNDLE.questions[screen.qkey];
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="question-card">' +
+        '<div class="q-kicker">' + esc(meta.kicker) + '</div>' +
+        '<h2 class="question-text">' + esc(qdata.question_text) + '</h2>' +
+      '</div>' +
+      '<div class="options">' +
+        meta.answerOptions.map(function (o) {
+          return '<button class="opt" data-val="' + esc(o.value) + '">' + esc(o.label) + '</button>';
+        }).join("") +
+      '</div>' +
+      '<div class="spacer"></div>' +
+    '</div>';
+  app.querySelectorAll(".opt").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      state.answers[screen.qkey] = btn.dataset.val;
+      advance();
+    });
+  });
+}
+
+function renderReveal(screen) {
+  const meta = QUESTION_META[screen.qkey];
+  const slice = findSlice(screen.qkey, state.disclosed, state.disclosureOrder);
+  const subject = subjectFor(slice);
+  state.seen[screen.qkey] = { pct: pctStr(slice.estimate), subject: subject };
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="reveal-block">' +
+        '<div class="reveal-label">' + (slice.level === "national" ? "Nationally" : "Among " + esc(subject)) + '</div>' +
+        '<div class="big-number"><span id="num">0.0</span><span class="pct">%</span></div>' +
+        ciBandHtml(slice) +
+        noteHtml(slice) +
+      '</div>' +
+      '<p class="statement">' + meta.statement(pctStr(slice.estimate), esc(subject)) + '</p>' +
+      '<div id="party-container">' + partyBarsHtml(screen.qkey) + '</div>' +
+      '<p class="party-callout">' + meta.callout + '</p>' +
+      '<div class="spacer"></div>' +
+      '<button class="btn-primary" id="continue-btn">Continue</button>' +
+    '</div>';
+  animateNumber(document.getElementById("num"), 0, slice.estimate, 900);
+  animatePartyBars(document.getElementById("party-container"));
+  document.getElementById("continue-btn").addEventListener("click", function () { advance(); });
+}
+
+function renderSharpen(screen) {
+  const dim = screen.dim;
+  const before = findSlice(screen.qkey, state.disclosed, state.disclosureOrder);
+
+  let optionsHtml, promptText;
+  if (dim === "age_group") {
+    promptText = "How old are you?";
+    optionsHtml = '<div class="option-grid">' + AGE_GROUPS.map(function (a) {
+      return '<button class="opt chip" data-val="' + esc(a) + '">' + esc(a === "80 plus" ? "80+" : a) + '</button>';
+    }).join("") + '</div>';
+  } else {
+    promptText = "How far did you get in school?";
+    optionsHtml = '<div class="options">' + EDUCS.map(function (e) {
+      return '<button class="opt" data-val="' + esc(e) + '">' + esc(e) + '</button>';
+    }).join("") + '</div>';
+  }
+
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="reveal-block">' +
+        '<div class="reveal-label">' + (before.level === "national" ? "Nationally" : "Among " + esc(subjectFor(before))) + '</div>' +
+        '<div class="big-number"><span id="num">' + pctStr(before.estimate) + '</span><span class="pct">%</span></div>' +
+      '</div>' +
+      '<div class="sharpen-label">' + promptText + '</div>' +
+      '<div class="sharpen-sub">The number will sharpen to people like you.</div>' +
+      optionsHtml +
+      '<div class="spacer"></div>' +
+    '</div>';
+
+  app.querySelectorAll(".opt").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      disclose(dim, btn.dataset.val);
+      const after = findSlice(screen.qkey, state.disclosed, state.disclosureOrder);
+      app.querySelectorAll(".opt").forEach(function (b) { b.disabled = true; });
+      animateNumber(document.getElementById("num"), before.estimate, after.estimate, 700, function () {
+        setTimeout(function () { renderSharpenResult(screen, after); }, reduceMotion ? 0 : 250);
+      });
+    });
+  });
+}
+
+function renderSharpenResult(screen, slice) {
+  state.seen[screen.qkey] = { pct: pctStr(slice.estimate), subject: subjectFor(slice) };
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="reveal-block">' +
+        '<div class="reveal-label">' + (slice.level === "national" ? "Nationally" : "Among " + esc(subjectFor(slice))) + '</div>' +
+        '<div class="big-number">' + pctStr(slice.estimate) + '<span class="pct">%</span></div>' +
+        ciBandHtml(slice) +
+        noteHtml(slice) +
+      '</div>' +
+      '<p class="statement">' + QUESTION_META[screen.qkey].statement(pctStr(slice.estimate), esc(subjectFor(slice))) + '</p>' +
+      '<div class="spacer"></div>' +
+      '<button class="btn-primary" id="continue-btn">Continue</button>' +
+    '</div>';
+  document.getElementById("continue-btn").addEventListener("click", function () { advance(); });
+}
+
+function renderDeepen(screen) {
+  const before = findSlice(screen.qkey, state.disclosed, state.disclosureOrder);
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="reveal-block">' +
+        '<div class="reveal-label">' + (before.level === "national" ? "Nationally" : "Among " + esc(subjectFor(before))) + '</div>' +
+        '<div class="big-number">' + pctStr(before.estimate) + '<span class="pct">%</span></div>' +
+      '</div>' +
+      '<div class="sharpen-label">Want this for your state?</div>' +
+      '<div class="sharpen-sub">Optional. Estimates are available for these states.</div>' +
+      '<div class="option-grid">' + STATES.map(function (s) {
+        return '<button class="opt chip" data-val="' + esc(s) + '">' + esc(STATE_NAMES[s] || s) + '</button>';
+      }).join("") + '</div>' +
+      '<button class="btn-secondary" id="skip-state">Skip this</button>' +
+    '</div>';
+  app.querySelectorAll(".opt").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      disclose("state", btn.dataset.val);
+      renderSharpenResult(screen, findSlice(screen.qkey, state.disclosed, state.disclosureOrder));
+    });
+  });
+  document.getElementById("skip-state").addEventListener("click", function () {
+    state.skippedState = true;
+    advance();
+  });
+}
+
+function renderBridge(screen) {
+  app.innerHTML =
+    '<div class="screen">' +
+      progressDots(screen.qi) +
+      '<div class="spacer"></div>' +
+      '<p class="bridge-text">' + QUESTION_META[screen.qkey].bridge + '</p>' +
+      '<div class="spacer"></div>' +
+      '<button class="btn-primary" id="continue-btn">Keep going</button>' +
+    '</div>';
+  document.getElementById("continue-btn").addEventListener("click", function () { advance(); });
+}
+
+function renderConversion() {
+  const recap = QUESTION_ORDER.filter(function (q) { return state.seen[q]; }).map(function (q) {
+    const s = state.seen[q];
+    return '<div class="recap-item">' + QUESTION_META[q].statement(s.pct, esc(s.subject)) + '</div>';
+  }).join("");
+
+  app.innerHTML =
+    '<div class="screen">' +
+      '<div class="eyebrow">You&rsquo;ve seen where the country stands</div>' +
+      '<h2 class="conv-title">Now see where your representative stands.</h2>' +
+      '<p class="conv-lede">Almost everyone wants the democracy. Almost nobody feels heard by it. ' +
+      'MOVE/ALIGN measures how closely your own representative actually tracks people like you — ' +
+      'on their votes, not their press releases.</p>' +
+      '<div class="recap">' + recap + '</div>' +
+      '<div class="score-preview">' +
+        '<div class="eyebrow">Preview</div>' +
+        '<div class="score-num">62<span style="font-size:24px;">/100</span></div>' +
+        '<div class="score-sub">Illustrative alignment score. Yours is computed from your answers and your district&rsquo;s member of Congress.</div>' +
+      '</div>' +
+      '<form class="email-form" id="email-form" novalidate>' +
+        '<label class="sr-only" for="email-input">Email address</label>' +
+        '<input type="email" id="email-input" placeholder="you@example.com" autocomplete="email" required>' +
+        '<button type="submit" class="btn-primary">See your alignment score</button>' +
+      '</form>' +
+      '<div class="demo-note">Demo mode — nothing is submitted or stored.</div>' +
+      '<div class="spacer"></div>' +
+      '<div style="text-align:center;"><a href="#" class="learn-more" id="learn-more-link">Learn more about MOVE &rarr;</a></div>' +
+      '<div class="footnote">Model-based estimates from ' + esc(BUNDLE.vintage) + '. Party figures are national.</div>' +
+    '</div>';
+  document.getElementById("email-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    const input = document.getElementById("email-input");
+    if (!input.value || input.value.indexOf("@") === -1) { input.focus(); return; }
+    renderConfirm();
+  });
+  document.getElementById("learn-more-link").addEventListener("click", function (e) { e.preventDefault(); });
+}
+
+function renderConfirm() {
+  app.innerHTML =
+    '<div class="screen">' +
+      '<div class="spacer"></div>' +
+      '<div class="confirm">' +
+        '<div class="check">&#10003;</div>' +
+        '<h2>Thanks — we&rsquo;ll be in touch.</h2>' +
+        '<p class="lede" style="margin-top:12px;">Demo mode: nothing was submitted or stored.</p>' +
+      '</div>' +
+      '<div class="spacer"></div>' +
+      '<div class="footnote">Model-based estimates from ' + esc(BUNDLE.vintage) + '.</div>' +
+    '</div>';
+}
+
+function render() {
+  const screen = SCREENS[state.screenIdx];
+  if (!screen) { renderIntro(); return; }
+  switch (screen.type) {
+    case "ask": return renderAsk(screen);
+    case "reveal": return renderReveal(screen);
+    case "sharpen": return renderSharpen(screen);
+    case "deepen": return renderDeepen(screen);
+    case "bridge": return renderBridge(screen);
+    case "conversion": return renderConversion();
+  }
+}
+
+buildIndex();
+render();
+</script>
+</body>
+</html>
