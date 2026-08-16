@@ -4,10 +4,10 @@ District-level estimates of American public opinion, for use in marketing
 funnel targeting. Two question sets are fit: **the marketing four**, chosen
 for cross-partisan appeal and demographic range; and **the funnel five**,
 chosen for resonance — shared grievance or a unifying value — to drive a
-progressive-disclosure poll flow. The funnel five are fit and their estimates
-are committed under `data/estimates/`, but the demo in `app/` currently walks
-only the marketing four; a rebuild around the funnel flow is planned but not
-yet done. See `docs/methodology.md` for both sets' selection evidence.
+progressive-disclosure poll flow. Both sets are fit and their estimates are
+committed under `data/estimates/`; the demo in `app/` walks the funnel five's
+progressive-grievance flow. See `docs/methodology.md` for both sets' selection
+evidence.
 
 Multilevel regression and poststratification (MRP) on ANES 2024 survey data,
 projected onto an ACS-derived population frame. GPU-accelerated Bayesian
@@ -47,12 +47,12 @@ sharply (27.7 points of spread against 11–13 for the others). Its scale
 Selected for resonance — shared grievance or a unifying value — rather than
 district discrimination, so the D–R gap is reported, not gated. These fit and
 poststratify the same way as the marketing four; their lookup tables are
-committed under `data/estimates/lookup_<question>.csv`. **`app/app.R` does not
-yet consume them** — the current demo walks only the marketing four. A
-funnel-flow rebuild of the demo is planned. See
-[`docs/methodology.md`](docs/methodology.md) "The funnel question set" for the
-full selection reasoning, including why `country_offtrack` shares a raw column
-with the frozen `country_track` validation fixture.
+committed under `data/estimates/lookup_<question>.csv`. **`app/app.R` walks
+this set** — pick one of the five, answer it, then disclose demographics one
+at a time. See [`docs/methodology.md`](docs/methodology.md) "The funnel
+question set" for the full selection reasoning, including why
+`country_offtrack` shares a raw column with the frozen `country_track`
+validation fixture.
 
 ## Output
 
@@ -121,14 +121,14 @@ python python/fit.py basic_facts
 python python/fit.py election_efficacy
 python python/fit.py congress_approval
 python python/fit.py social_trust
-# funnel five (see "The funnel five" above; app/app.R does not consume these yet)
+# funnel five (see "The funnel five" above; app/app.R walks this set)
 python python/fit.py country_offtrack
 python python/fit.py democracy_importance
 python python/fit.py gov_few_interests
 python python/fit.py officials_dont_care
 python python/fit.py no_say
 
-# 3. Optional: walk the (marketing-four) demo in a browser
+# 3. Optional: walk the (funnel-five) demo in a browser
 Rscript -e 'shiny::runApp("app")'
 ```
 

@@ -16,7 +16,7 @@
 # The credible interval is shown numerically and as a band throughout -- the
 # widening is honest and visible -- but re-rendering the categorical word
 # "medium" at each step reads as the app progressively disclaiming itself, which
-# social_trust would trigger on 77% of its deep slices.
+# country_offtrack would trigger on 75% of its deep (five-detail) slices.
 #
 # Data: data/estimates/lookup_<question>.csv, produced by python/fit.py.
 # Run:  shiny::runApp("app")
@@ -34,39 +34,55 @@ library(data.table)
 # `short` is what goes in the picker. The full `poll` text stays below it: a
 # 100-character question truncates badly inside a mobile <select>, and the
 # redundancy worth removing was the slug ("basic_facts"), not the question.
+#
+# The funnel five (see CLAUDE.md "The funnel five" / docs/methodology.md "The
+# funnel question set"), not the marketing four -- selected for cross-partisan
+# resonance rather than district discrimination. `officials_dont_care` and
+# `no_say` drop ANES's "Neither" midpoint from the model entirely (target_binary
+# is NA for it), so it is left out of `options` here too: every choice offered
+# must resolve to a side the model actually fit, or a respondent picking the
+# dropped midpoint would fall through `agree` into a false "you are in the
+# minority" verdict.
 QUESTIONS <- list(
-  basic_facts = list(
-    short = "Agreeing on basic facts",
-    poll  = "How important is it that people agree on basic facts, even if they disagree politically?",
+  country_offtrack = list(
+    short = "Whether the country is on the right track",
+    poll  = "Do you feel things in this country are generally going in the right direction, or do you feel things have pretty seriously gotten off on the wrong track?",
+    options = c("Right direction", "Wrong track"),
+    agree = c("Wrong track"),
+    label = "say the country has gotten off on the wrong track"
+  ),
+  democracy_importance = list(
+    short = "How important keeping democracy is",
+    # !! V242180 DESCENDS (1 = Extremely important ... 5 = Not at all
+    # important), the opposite of basic_facts's V241327. The app reads labels
+    # from the lookup file and never touches the codes, so this only matters if
+    # you are eyeballing the recode -- see docs/methodology.md sec 3.
+    poll  = "How important is it that the U.S. remains a democracy?",
     options = c("Extremely important", "Very important", "Moderately important",
-                "A little important", "Not important at all"),
+                "Slightly important", "Not at all important"),
     agree = c("Extremely important", "Very important"),
-    label = "say it is important that we agree on basic facts"
+    label = "say keeping the U.S. a democracy is important"
   ),
-  election_efficacy = list(
-    short = "Whether elections make government listen",
-    poll  = "How much do you feel that having elections makes the government pay attention to what people think?",
-    options = c("A good deal", "Some", "Not much"),
-    agree = c("A good deal"),
-    label = "say elections make government pay attention a good deal"
+  gov_few_interests = list(
+    short = "Who government is really run for",
+    poll  = "Is government run by a few big interests looking out for themselves, or for the benefit of all the people?",
+    options = c("Run by a few big interests", "For the benefit of all the people"),
+    agree = c("Run by a few big interests"),
+    label = "say government is run by a few big interests looking out for themselves"
   ),
-  congress_approval = list(
-    short = "How Congress is doing",
-    poll  = "Do you approve or disapprove of the way Congress is handling its job?",
-    options = c("Approve", "Disapprove"),
-    agree = c("Approve"),
-    label = "approve of how Congress is handling its job"
+  officials_dont_care = list(
+    short = "Whether officials care what you think",
+    poll  = "Public officials don't care much what people like me think.",
+    options = c("Agree strongly", "Agree somewhat", "Disagree somewhat", "Disagree strongly"),
+    agree = c("Agree strongly", "Agree somewhat"),
+    label = "agree that public officials don't care much what people like them think"
   ),
-  social_trust = list(
-    short = "Trusting other people",
-    # Displayed most-trusting first, matching the other items. Note this is the
-    # reverse of the ANES code order for V241234, which descends -- the app
-    # reads labels from the lookup file and never touches the codes.
-    poll  = "Generally speaking, how often can you trust other people?",
-    options = c("Always", "Most of the time", "About half the time",
-                "Some of the time", "Never"),
-    agree = c("Always", "Most of the time"),
-    label = "say other people can usually be trusted"
+  no_say = list(
+    short = "Whether you have a say in what government does",
+    poll  = "People like me don't have any say about what the government does.",
+    options = c("Agree strongly", "Agree somewhat", "Disagree somewhat", "Disagree strongly"),
+    agree = c("Agree strongly", "Agree somewhat"),
+    label = "agree that people like them don't have any say about what the government does"
   )
 )
 

@@ -27,15 +27,17 @@ suppressPackageStartupMessages({
   library(shiny); library(data.table); library(ggplot2)
 })
 
-# One "agree"-side answer per question, so the result card takes its main branch.
-AGREE <- list(basic_facts       = "Extremely important",
-              election_efficacy = "A good deal",
-              congress_approval = "Approve",
-              social_trust      = "Most of the time")
+# One "agree"-side answer per question (the funnel five), so the result card
+# takes its main branch.
+AGREE <- list(country_offtrack     = "Wrong track",
+              democracy_importance = "Extremely important",
+              gov_few_interests    = "Run by a few big interests",
+              officials_dont_care  = "Agree strongly",
+              no_say               = "Agree strongly")
 
 # Two profiles, in STEPS order, walked for every question. `matched` still has a
 # couple of literal ANES respondents behind it; `unseen` has none for any of the
-# four questions, which is the case the app is built to dramatise and the only
+# five questions, which is the case the app is built to dramatise and the only
 # one that reaches the zero-respondent panel.
 PROFILES <- list(
   matched = list(state = "TX", age_group = "35-39", sex = "Female",
@@ -149,8 +151,8 @@ shiny::testServer(shiny::shinyAppFile("app/app.R"), {
   }
 
   # --- skipping leaves the attribute at ALL and does not add a trace point -----
-  session$setInputs(question = "basic_facts")
-  session$setInputs(answered = AGREE$basic_facts)
+  session$setInputs(question = "country_offtrack")
+  session$setInputs(answered = AGREE$country_offtrack)
   before <- nrow(rv$hist)
   session$setInputs(skip = 1L)
   check(rv$step == 1L, "skip did not advance the step")

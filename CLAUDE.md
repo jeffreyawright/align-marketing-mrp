@@ -13,12 +13,12 @@ flow rather than to discriminate districts.
 recode, or the question set.** It carries the decisions and their rationale.
 [`README.md`](README.md) is the user-facing entry point.
 
-**`app/app.R` currently walks only the marketing four.** The demo is planned
-to be rebuilt around the funnel five's progressive-grievance flow — that is
-the thing being pitched, not the four-question app as it stands today. Until
-that rebuild happens, treat `app/app.R` and `docs/for-david.md` as describing
-the *current* shipped demo, not the target one. Don't extend either as if the
-funnel set were already wired in.
+**`app/app.R` walks the funnel five, not the marketing four.** It was rebuilt
+around the funnel five's progressive-grievance flow — the thing being pitched
+— superseding the original four-question walk. `docs/for-david.md` documents
+the app as it stands today (the funnel five); the marketing four's lookup
+tables are still fit and committed but are no longer what the app consumes —
+see "Question selection" in `docs/methodology.md` for that set.
 
 ## The marketing four
 
@@ -100,7 +100,7 @@ align-marketing-mrp/
 │   ├── fit.py                    # GPU fit + poststrat + lookup -> data/estimates/
 │   └── requirements.txt
 ├── app/
-│   ├── app.R                     # Shiny demo, marketing four (funnel-five rebuild pending)
+│   ├── app.R                     # Shiny demo, funnel five (progressive-grievance flow)
 │   └── manifest.json             # Connect Cloud dependency pin (generated)
 ├── demo/
 │   ├── index.html               # static funnel demo (bundle embedded inline)
@@ -256,25 +256,25 @@ number.
 
 ## The app
 
-`app/app.R` walks a visitor through the lookup one attribute at a time: answer a
-question, then disclose state, age, sex, race, and education in turn, watching
-the estimate move. It reads the lookup CSVs and nothing else — no model, no
-refit, no stored user data.
+`app/app.R` walks a visitor through the lookup one attribute at a time: pick one
+of the funnel five, answer it, then disclose state, age, sex, race, and
+education in turn, watching the estimate move. It reads the lookup CSVs and
+nothing else — no model, no refit, no stored user data.
 
 **Disclosure does not buy precision, and the app must not imply that it does.**
 Median `ci_width` runs 0.033 at the national level → 0.095 at two attributes →
 0.120 at five. A "precision meter" or any progress affordance that fills as the
 user discloses is a claim the screen disproves in real time. What disclosure buys
-is *specificity plus the disappearance of direct evidence*: `basic_facts` goes
-from 71% nationally to anywhere in 45–91% once personalized, and **86% of fully
-specified slices have zero matching ANES respondents**. That is the demo.
+is *specificity plus the disappearance of direct evidence*: `country_offtrack`
+goes from 78% nationally to anywhere in 28–94% once personalized, and **86% of
+fully specified slices have zero matching ANES respondents**. That is the demo.
 
 Three things in the app exist for reasons that are not obvious from the code:
 
 - **The categorical `reliability` word is rendered only when the walk completes.**
   The interval is shown numerically and as a band at every step — the widening is
-  the honest half of the story. But `social_trust` is `medium` or `low` on 79% of
-  its deep slices, so re-rendering the word each step reads as the app
+  the honest half of the story. But `country_offtrack` is `medium` or `low` on
+  75% of its deep slices, so re-rendering the word each step reads as the app
   progressively disclaiming its own answer. Do not fix that by moving the
   thresholds; they are a published contract.
 - **The next step's choices are filtered to populated slices** (`choices_for`).
@@ -335,7 +335,7 @@ Rscript R/national_category_marginals.R  # -> data/estimates/national_category_m
 
 # Demo the funnel against the lookup tables
 Rscript -e 'shiny::runApp("app")'
-Rscript tests/verify_app.R                         # server reactives, all four questions
+Rscript tests/verify_app.R                         # server reactives, all five funnel questions
 
 # Regenerate the Connect Cloud dependency pin (after changing app.R's packages)
 Rscript -e 'rsconnect::writeManifest(appDir = "app")'

@@ -1,32 +1,31 @@
 # Using the estimates
 
-**This document describes the four questions currently wired into the demo
-app.** A second set — five items chosen for resonance (shared grievance or a
-unifying value) rather than district discrimination — is fit and its lookup
-tables are already committed (`data/estimates/lookup_country_offtrack.csv`,
-`lookup_democracy_importance.csv`, `lookup_gov_few_interests.csv`,
-`lookup_officials_dont_care.csv`, `lookup_no_say.csv`). The demo app is
-planned to be rebuilt around that funnel flow, but that rebuild has not
-happened yet — everything below still describes the four-question app as it
-stands today. Don't read this page as covering the funnel five; see
-`docs/methodology.md` "The funnel question set" for those.
+**This document describes the five funnel questions wired into the demo app**
+(`app/app.R`) — selected for cross-partisan resonance (shared grievance or a
+unifying value), not district discrimination. The original four-question
+research-grade targeting set (`basic_facts`, `election_efficacy`,
+`congress_approval`, `social_trust`) is still fit and its lookup tables are
+still committed, but it is no longer what the app walks; see
+`docs/methodology.md` "Question selection" for that set.
 
-Everything you need is in four CSV files:
+Everything you need is in five CSV files:
 
 ```
-data/estimates/lookup_basic_facts.csv
-data/estimates/lookup_election_efficacy.csv
-data/estimates/lookup_congress_approval.csv
-data/estimates/lookup_social_trust.csv
+data/estimates/lookup_country_offtrack.csv
+data/estimates/lookup_democracy_importance.csv
+data/estimates/lookup_gov_few_interests.csv
+data/estimates/lookup_officials_dont_care.csv
+data/estimates/lookup_no_say.csv
 ```
 
 One file per poll question. No database, no API, no code to run — load the CSV
 and look up a row.
 
-All four have identical columns and identical keys, so one piece of code reads
-any of them. They do not all carry the same precision — `social_trust` has
-visibly wider intervals than the rest — but the `reliability` column tells you
-that per row, so you do not need per-question logic.
+All five have identical columns and identical keys, so one piece of code reads
+any of them. They do not all carry the same precision — `country_offtrack` has
+visibly wider intervals than the rest once state, age, sex, race, and
+education are all supplied — but the `reliability` column tells you that per
+row, so you do not need per-question logic.
 
 ---
 
@@ -46,13 +45,13 @@ is. `ALL` means "not specified".
 
 | state | age_group | sex | race | educ | estimate | q025 | q975 | n_survey | reliability |
 |---|---|---|---|---|---|---|---|---|---|
-| ALL | ALL | ALL | ALL | ALL | 0.713 | 0.697 | 0.729 | 4857 | high |
-| TX | ALL | ALL | ALL | ALL | 0.702 | 0.673 | 0.729 | 377 | high |
-| TX | 35-39 | ALL | ALL | ALL | 0.691 | 0.642 | 0.736 | 34 | high |
-| TX | 35-39 | Female | ALL | ALL | 0.666 | 0.614 | 0.714 | 16 | high |
-| TX | 35-39 | Female | Hispanic | ALL | 0.627 | 0.565 | 0.687 | 7 | high |
+| ALL | ALL | ALL | ALL | ALL | 0.781 | 0.766 | 0.795 | 4841 | high |
+| TX | ALL | ALL | ALL | ALL | 0.815 | 0.783 | 0.847 | 375 | high |
+| TX | 35-39 | ALL | ALL | ALL | 0.848 | 0.806 | 0.886 | 34 | high |
+| TX | 35-39 | Female | ALL | ALL | 0.846 | 0.803 | 0.885 | 16 | high |
+| TX | 35-39 | Female | Hispanic | ALL | 0.853 | 0.805 | 0.894 | 7 | high |
 
-*(Real rows from `lookup_basic_facts.csv`.)*
+*(Real rows from `lookup_country_offtrack.csv`.)*
 
 - **`estimate`** — the share of that group who answered the "yes" side. Multiply
   by 100 for a percentage. `0.713` → 71.3%.
@@ -74,10 +73,11 @@ the most robust number in the file and the one you will show most often.
 
 | File | National estimate | 95% range |
 |---|---|---|
-| `lookup_basic_facts` | 71.3% | 69.7 – 72.9 |
-| `lookup_election_efficacy` | 28.0% | 26.3 – 29.7 |
-| `lookup_congress_approval` | 19.6% | 18.2 – 21.1 |
-| `lookup_social_trust` | 37.8% | 36.1 – 39.5 |
+| `lookup_country_offtrack` | 78.1% | 76.6 – 79.5 |
+| `lookup_democracy_importance` | 80.9% | 79.0 – 82.6 |
+| `lookup_gov_few_interests` | 81.8% | 80.4 – 83.3 |
+| `lookup_officials_dont_care` | 85.8% | 84.4 – 87.1 |
+| `lookup_no_say` | 76.5% | 74.8 – 78.0 |
 
 ## Looking up a row
 
@@ -85,7 +85,7 @@ Set every column the user has told you, and `ALL` for everything else. In SQL:
 
 ```sql
 SELECT estimate, q025, q975, n_survey, reliability
-FROM lookup_basic_facts
+FROM lookup_country_offtrack
 WHERE state = 'TX' AND age_group = '35-39'
   AND sex = 'ALL' AND race = 'ALL' AND educ = 'ALL';
 ```
@@ -117,42 +117,45 @@ statement true across the whole range whatever the base rate. At 25 points the
 rounded fraction itself starts to move, so there is nothing safe left to say.
 
 **A simple rule that will not get you in trouble: if `reliability` is `low`, drop
-the last detail the user gave and use that row instead.** This is rare — under 2%
-of rows on every question — so it is a genuine exception, not a path you will be
-on constantly.
+the last detail the user gave and use that row instead.** This is rare on most
+questions — under 3% of rows — with one exception (`country_offtrack` at 6.0%),
+so it is a genuine exception, not a path you will be on constantly.
 
 **`high` means "±7.5 points", not "precise."** Share of rows flagged `high` at
 each level of disclosure:
 
-| Details supplied | Rows | `basic_facts` | `election_efficacy` | `congress_approval` | `social_trust` |
-|---|---|---|---|---|---|
-| 0 (national) | 1 | 100% | 100% | 100% | 100% |
-| 1 | 75 | 100% | 99% | 100% | 91% |
-| 2 | 1,405 | 99% | 92% | 95% | 62% |
-| 3 | 9,549 | 97% | 71% | 88% | 39% |
-| 4 | 25,267 | 88% | 52% | 80% | 27% |
-| 5 | 22,404 | 80% | 38% | 72% | 21% |
+| Details supplied | Rows | `country_offtrack` | `democracy_importance` | `gov_few_interests` | `officials_dont_care` | `no_say` |
+|---|---|---|---|---|---|---|
+| 0 (national) | 1 | 100% | 100% | 100% | 100% | 100% |
+| 1 | 75 | 99% | 100% | 99% | 99% | 99% |
+| 2 | 1,405 | 76% | 94% | 92% | 98% | 98% |
+| 3 | 9,549 | 48% | 84% | 70% | 94% | 88% |
+| 4 | 25,267 | 33% | 78% | 51% | 89% | 74% |
+| 5 | 22,404 | 25% | 74% | 35% | 83% | 60% |
 
-**One and two details — the realistic funnel — are safe on all four questions.**
-Past that the questions separate, and `social_trust` is consistently the least
-certain of the four. That is real: it carries genuinely wider intervals than the
-others, and the flag is telling you so rather than hiding it.
+**One detail — the realistic funnel opener — is safe on all five questions.**
+Past that they separate quickly, and `country_offtrack` is consistently the
+least certain of the five: only a quarter of fully-specified rows are `high`.
+That is real — it carries genuinely wider intervals than the others — and the
+flag is telling you so rather than hiding it.
 
-Practical guidance for `social_trust`: it is fine as a number through two
-details, and past three prefer "roughly 4 in 10" over a specific figure. Do not
-suppress `medium` on any question — that is the normal, usable tier.
+Practical guidance for `country_offtrack` and `gov_few_interests`: fine as a
+number through one detail, and past two prefer a rounded fraction ("about 8 in
+10") over a specific figure. Do not suppress `medium` on any question — that is
+the normal, usable tier.
 
 ## How deep to go
 
-**One detail is comfortably safe on all four** — state alone, or age alone, is
-`high` for 91–100% of rows on every question.
+**One detail is comfortably safe on all five** — state alone, or age alone, is
+`high` for 99–100% of rows on every question.
 
-**Two details is still safe**, at 92–99% `high` on three of them and 62% on
-`social_trust`.
+**Two details is still mostly safe**, at 92–98% `high` on four of them and 76%
+on `country_offtrack`.
 
-**Three or more is where the questions separate.** `basic_facts` stays at 97%
-`high`, `congress_approval` 88%, `election_efficacy` 71%, `social_trust` 39%.
-Check the flag rather than assuming.
+**Three or more is where the questions separate.** `officials_dont_care` stays
+at 94% `high` at three details, `no_say` 88%, `democracy_importance` 84%,
+`gov_few_interests` 70%, `country_offtrack` 48%. Check the flag rather than
+assuming.
 
 Realistically, a poll funnel gets one or two details before people lose patience,
 and that is enough to make the comparison feel personal. The deeper combinations
@@ -165,7 +168,7 @@ The file has 58,701 rows out of a possible 65,520. The gaps are combinations tha
 essentially nobody in the country matches — a demographic profile with no
 population in that state.
 
-**Every combination of two or fewer details exists**, in all four files. So the
+**Every combination of two or fewer details exists**, in all five files. So the
 realistic funnel path — national, then state, then age — never misses. Gaps only
 start at three details and are concentrated at four and five.
 
@@ -174,28 +177,32 @@ retry. That is the same handling as a `low` reliability row.
 
 ## What these numbers are, and are not
 
-**They are model estimates, not survey tallies.** The survey has roughly 4,800
-respondents per question (4,857 for `basic_facts`, 4,871 for
-`election_efficacy`, 4,787 for `congress_approval`, 4,875 for `social_trust`) —
-the `n_survey` value in the
-all-`ALL` row of each file. There is no state with enough respondents to just count them
+**They are model estimates, not survey tallies.** The survey has roughly 3,700
+to 4,800 respondents per question (4,841 for `country_offtrack`, 4,396 for
+`democracy_importance`, 4,840 for `gov_few_interests`, 3,737 for
+`officials_dont_care`, 3,806 for `no_say` — the two POST-election items lose
+more respondents to non-completion) — the `n_survey` value in the all-`ALL` row
+of each file. There is no state with enough respondents to just count them
 directly — Wyoming has a handful. The model learns how age, sex, race,
 education, and state relate to the answer, then applies that to the actual
 population makeup of each group. This is standard practice for exactly this
 problem; it is how election night projections and district-level opinion
 estimates are made.
 
-**These will not match a raw count of the survey.** 74.7% of ANES respondents
-gave the "yes" answer on `basic_facts`, but the estimate here is 71.3%. That is
-not an error — the raw figure counts the people who happened to be surveyed,
-while the estimate reweights them to the actual makeup of the country. The
-reweighted number is the one to quote. If you see 74.7% in `docs/methodology.md`,
-that is the raw survey figure and it is labelled as such.
+**These will not match a raw count of the survey.** 85.5% of ANES respondents
+gave the "yes" answer on `democracy_importance`, but the estimate here is
+80.9%. That is not an error — the raw figure counts the people who happened to
+be surveyed, while the estimate reweights them to the actual makeup of the
+country. The reweighted number is the one to quote. If you see a different
+percentage for this question in `docs/methodology.md`, that is either the
+raw survey figure or the marketing-set screening cut, and both are labelled as
+such — see methodology.md §2 for why one ANES item has three different
+reported numbers.
 
 **Fair things to say:**
-- "71% of Americans say it is important that we agree on basic facts."
-- "In Texas, about 70% say the same."
-- "Among people your age in your state, roughly 69%."
+- "78% of Americans say the country has gotten off on the wrong track."
+- "In Texas, about 82% say the same."
+- "Among people your age in your state, roughly 85%."
 
 **Things to avoid:**
 - Quoting decimals. "71%", not "71.3%" — the extra digit is not real precision.
@@ -219,20 +226,24 @@ If anyone asks how it works, `docs/methodology.md` has the full specification;
 
 | File | Question asked | `estimate` is the share who said |
 |---|---|---|
-| `lookup_basic_facts` | "How important is it that people agree on basic facts even if they disagree politically?" | Very or Extremely important |
-| `lookup_election_efficacy` | "How much do you feel that having elections makes the government pay attention to what the people think?" | A good deal |
-| `lookup_congress_approval` | "Do you approve or disapprove of the way the U.S. Congress has been handling its job?" | Approve |
-| `lookup_social_trust` | "Generally speaking, how often can you trust other people?" | Always, or Most of the time |
+| `lookup_country_offtrack` | "Do you feel things in this country are generally going in the right direction, or have they pretty seriously gotten off on the wrong track?" | Wrong track |
+| `lookup_democracy_importance` | "How important is it that the U.S. remains a democracy?" | Extremely or Very important |
+| `lookup_gov_few_interests` | "Is government run by a few big interests looking out for themselves, or for the benefit of all the people?" | Run by a few big interests |
+| `lookup_officials_dont_care` | "Public officials don't care much what people like me think." | Agree strongly or somewhat |
+| `lookup_no_say` | "People like me don't have any say about what the government does." | Agree strongly or somewhat |
 
 Use this wording in the poll. The estimates only mean what they mean because
 these are the exact questions that were asked.
 
-`social_trust` is the odd one out in a useful way: it is the only question that
-isn't about government, and the only one that won't need revisiting after an
-election — it has been asked in this form since 1972. It also separates districts
-about twice as sharply as the other three, so if you are picking one question to
-target on, it is the strongest signal. Its intervals are wider; see
-"Reliability".
+These five were picked for cross-partisan resonance, not district
+discrimination — the point is that they land as shared grievance or shared
+value across the political spectrum, not that they discriminate between
+congressional districts (that is what the marketing four are for). Two of
+them stand out: on `officials_dont_care` and `no_say`, political Independents
+agree *more* than either party does (90.7% and 84.5% vs. both Democrats and
+Republicans below that) — the opposite of the marketing-set pattern, and the
+reason `no_say` is the funnel's cross-partisan spine. See
+`docs/methodology.md` "The funnel question set" for the full detail.
 
 ## Seeing it work
 
