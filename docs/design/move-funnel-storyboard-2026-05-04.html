@@ -1,0 +1,340 @@
+<!--
+  PROVENANCE — read before editing or reusing.
+
+  MOVE acquisition funnel storyboard. Authored 2026-05-04 17:28.
+
+  Recovered from /mnt/R/align-platform, a stale snapshot of demographai-platform
+  whose last commit was 2026-04-29. This file was written five days AFTER that
+  commit and was never tracked in any repository, so it existed as a single
+  untracked working-tree file until it was moved here on 2026-08-17.
+
+  What it is: a stage-by-stage storyboard of the user acquisition funnel, from
+  the promo video through landing, OTP email verification, address validation
+  and on to the profile page. Records design rationale that is not captured
+  anywhere else — the intended emotional state on arrival, cookie-based
+  return-visitor state restoration for partial Q1/Q2/Q3/state progress, the
+  corrected demographics sequence, and which backend modules each stage needs.
+
+  Status: historical design input, not a spec. It is the narrative ancestor of
+  the shipped funnel demo in demo/index.html + demo/funnel_bundle.json, which
+  supersedes it in function. Kept because the reasoning behind the sequence is
+  not recorded in the shipped artifact.
+
+  Caveat: its typography uses Playfair Display, which the platform design system
+  later replaced with Fraunces. Do not treat its styling as current.
+
+  Placement note: this describes platform funnel UX rather than marketing
+  modelling. It lives here because the funnel demo it informed lives here.
+-->
+
+<h2 class="sr-only">Final MOVE user acquisition funnel storyboard from promo video through Align registration, with updated proportions and corrected demographics sequence</h2>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500&display=swap');
+*{box-sizing:border-box}
+.sb{font-family:'DM Sans',var(--font-sans);max-width:680px}
+.sb-nav{display:flex;gap:4px;margin:0 0 16px;flex-wrap:wrap}
+.sb-pill{font-size:12px;padding:5px 11px;border-radius:16px;cursor:pointer;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);color:var(--color-text-secondary);transition:all .2s;white-space:nowrap}
+.sb-pill.active{background:#0F4C4C;color:#F8F5F0;border-color:#0F4C4C}
+.sb-stage{display:none}
+.sb-stage.active{display:block}
+.sb-label{font-size:11px;font-weight:500;letter-spacing:.5px;text-transform:uppercase;color:#0F4C4C;margin:0 0 5px}
+.sb-title{font-family:'Playfair Display',var(--font-serif);font-size:21px;font-weight:600;color:var(--color-text-primary);margin:0 0 4px;line-height:1.25}
+.sb-sub{font-size:13px;color:var(--color-text-secondary);margin:0 0 16px;line-height:1.65}
+.sb-mock{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:18px 22px;margin:0 0 14px}
+.sb-mock-label{font-size:11px;color:var(--color-text-tertiary);margin:0 0 10px;text-transform:uppercase;letter-spacing:.3px}
+.sb-q{font-size:14px;font-weight:500;color:var(--color-text-primary);margin:0 0 9px;line-height:1.5}
+.sb-opts{display:flex;gap:7px;margin:0 0 12px;flex-wrap:wrap}
+.sb-opt{font-size:13px;padding:5px 13px;border-radius:18px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary)}
+.sb-opt.sel{background:#0F4C4C;color:#F8F5F0;border-color:#0F4C4C}
+.sb-reward{background:var(--color-background-primary);border-radius:var(--border-radius-md);padding:11px 15px;border-left:3px solid #D97706;margin:0 0 8px}
+.sb-reward-num{font-size:22px;font-weight:500;color:#D97706;margin:0}
+.sb-reward-txt{font-size:12px;color:var(--color-text-secondary);margin:2px 0 0}
+.sb-note{font-size:12px;color:var(--color-text-secondary);background:rgba(217,119,6,0.06);border:0.5px solid rgba(217,119,6,0.2);border-radius:var(--border-radius-md);padding:9px 13px;margin:8px 0;line-height:1.6}
+.sb-note strong{color:#B55A1A}
+.sb-arch{border-top:0.5px solid var(--color-border-tertiary);padding:13px 0 0;margin:14px 0 22px}
+.sb-arch-title{font-size:11px;font-weight:500;color:var(--color-text-tertiary);margin:0 0 5px;text-transform:uppercase;letter-spacing:.3px}
+.sb-arch-body{font-size:13px;color:var(--color-text-secondary);line-height:1.65;margin:0}
+.sb-arch-body code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);padding:1px 4px;border-radius:3px}
+.sb-tags{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}
+.sb-tag{font-size:11px;padding:3px 8px;border-radius:10px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)}
+.sb-tag.teal{background:rgba(15,76,76,0.08);color:#0F4C4C;border-color:rgba(15,76,76,0.2)}
+.sb-tag.gold{background:rgba(217,119,6,0.08);color:#B55A1A;border-color:rgba(217,119,6,0.2)}
+.sb-next{display:flex;justify-content:flex-end;margin:2px 0 0}
+.sb-next-btn{font-size:13px;color:#0F4C4C;cursor:pointer;border:none;background:none;padding:4px 0;font-family:'DM Sans',var(--font-sans)}
+.sb-next-btn:hover{text-decoration:underline}
+.sb-demo-seq{margin:8px 0}
+.sb-demo-item{display:flex;gap:10px;align-items:flex-start;margin:0 0 11px;padding:10px 12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.sb-demo-num{font-size:14px;color:#D97706;font-weight:500;flex-shrink:0;width:18px;margin-top:1px}
+.sb-demo-content{flex:1}
+.sb-demo-title{font-size:13px;font-weight:500;color:var(--color-text-primary);margin:0 0 2px}
+.sb-demo-desc{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin:0}
+.sb-demo-badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:middle}
+.sb-demo-badge.align{background:rgba(15,76,76,0.08);color:#0F4C4C;border:0.5px solid rgba(15,76,76,0.2)}
+.sb-demo-badge.defer{background:rgba(217,119,6,0.08);color:#B55A1A;border:0.5px solid rgba(217,119,6,0.2)}
+.sb-geo{background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:11px 14px;display:flex;align-items:flex-start;gap:11px;margin:8px 0}
+.sb-geo-icon{width:28px;height:28px;border-radius:50%;background:rgba(15,76,76,0.1);display:flex;align-items:center;justify-content:center;font-size:12px;color:#0F4C4C;flex-shrink:0;font-weight:500;margin-top:2px}
+.sb-geo-btns{display:flex;gap:6px;margin:7px 0 0}
+.sb-geo-btn{font-size:12px;padding:4px 10px;border-radius:6px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary)}
+.sb-geo-btn.yes{background:#0F4C4C;color:#F8F5F0;border-color:#0F4C4C}
+.sb-bar-outer{height:28px;background:var(--color-background-primary);border-radius:6px;overflow:hidden;border:0.5px solid var(--color-border-tertiary);position:relative;margin:6px 0 2px}
+.sb-bar-fill{height:100%;border-radius:6px 0 0 6px;background:#0F4C4C;display:flex;align-items:center;justify-content:flex-end}
+.sb-bar-pct{font-size:11px;font-weight:500;color:#F8F5F0;padding:0 7px}
+.sb-bar-row{display:flex;align-items:center;gap:8px;margin:3px 0}
+.sb-bar-label{font-size:11px;color:var(--color-text-secondary);width:100px;flex-shrink:0;text-align:right}
+.sb-congress-note{background:rgba(217,119,6,0.06);border:0.5px solid rgba(217,119,6,0.18);border-radius:var(--border-radius-md);padding:11px 14px;margin:10px 0;font-size:12px;color:var(--color-text-secondary);line-height:1.65}
+.sb-congress-note strong{color:var(--color-text-primary)}
+.sb-congress-note em{color:#B55A1A;font-style:normal;font-weight:500}
+</style>
+<div class="sb">
+<div class="sb-nav" id="nav"></div>
+<div id="stages"></div>
+</div>
+<script>
+const stages=[
+{id:"s0",label:"Step 0",name:"Promo video",
+html:`<div class="sb-label">Referring content</div>
+<div class="sb-title">The user just watched the promo video</div>
+<div class="sb-sub">They arrive at the landing page carrying the emotional state the video created — hopeful, frustrated, ready to act. "Home of the Equal Voices Movement." The first screen must meet them there.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">Emotional state on arrival</div>
+<div class="sb-tags" style="margin:0">
+<span class="sb-tag teal">Curious</span>
+<span class="sb-tag teal">Frustrated with status quo</span>
+<span class="sb-tag teal">Wants to matter</span>
+<span class="sb-tag teal">Not yet committed</span>
+</div>
+<div style="font-size:13px;color:var(--color-text-secondary);margin:12px 0 0;line-height:1.65">Cold traffic and returning users without a verified email always land here on the landing page, nobody lands on the home page without an OTP/magiclink-verified email. We cookie them so we can restore whatever progress they made on Q1,Q2,Q3,state. Once OTP email verification is complete, users go to the home page on every return visit. Once address is validated, they go directly to the profile page.</div>
+</div>
+<div class="sb-arch">
+<div class="sb-arch-title">What this requires</div>
+<div class="sb-arch-body">Static frontend. No backend modules active yet. Cookie dropped on first visit for return-visitor state restoration. Design matches the video's emotional tone: converging paths, parchment + teal + gold palette, Playfair Display headlines.</div>
+</div>`},
+
+{id:"s1",label:"Step 1",name:"Q1: Right track?",
+html:`<div class="sb-label">Micro-interaction 1 of 3</div>
+<div class="sb-title">Is the country on the right track?</div>
+<div class="sb-sub">First question is broad, accessible, and hits the primary pain point. Source: ANES. The reward is a real weighted estimate — not a platform frequency count.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What the user sees</div>
+<div class="sb-q">"Do you feel things in this country are generally going in the right direction, or do you feel things have pretty seriously gotten oﬀ on the wrong track?"</div>
+<div class="sb-opts"><span class="sb-opt">Right direction</span><span class="sb-opt sel">Wrong track</span></div>
+<div class="sb-reward">
+<div class="sb-reward-num">78%</div>
+<div class="sb-reward-txt">of Americans say we're on the wrong track. You're with the majority.</div>
+</div>
+</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">78% is a real survey-weighted estimate from ANES data (n=5,226). Served as a static value from the frontend — no API call needed at this stage. Cookie records the response for sunk-cost preservation on return visits. No user data collected yet.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag teal">Data: real weighted estimate</span><span class="sb-tag">Collected: nothing</span><span class="sb-tag">Auth: none</span></div>`},
+
+{id:"s2",label:"Step 2",name:"Q2: Elections work?",
+html:`<div class="sb-label">Micro-interaction 2 of 3</div>
+<div class="sb-title">Do elections make government listen?</div>
+<div class="sb-sub">Drills one level deeper — from "something's wrong" to "the mechanism is broken." Still accessible to low-information users. Source: ANES, 3-category item collapsed to binary.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What the user sees</div>
+<div class="sb-q">"How much do you feel that having elections makes the government pay attention to what the people think?"</div>
+<div class="sb-opts"><span class="sb-opt">A good deal</span><span class="sb-opt sel">Not much</span><span class="sb-opt">Not at all</span></div>
+<div class="sb-reward">
+<div class="sb-reward-num">71%</div>
+<div class="sb-reward-txt">of Americans feel elections don't fully make government listen — "not much" or "not at all."</div>
+</div>
+</div>
+
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">71% is a real weighted estimate (ANES, n=5,261). Binary collapse: "not much" + "not at all" = skeptical. The original 67% contingency table reward from earlier storyboard drafts was a mock figure — this replaces it. Same static-value pattern as Q1.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag teal">Data: real weighted estimate</span><span class="sb-tag">Collected: nothing</span><span class="sb-tag">Auth: none</span></div>`},
+
+{id:"s3",label:"Step 3",name:"Q3: Common ground",
+html:`<div class="sb-label">Micro-interaction 3 of 3</div>
+<div class="sb-title">Can we agree on basic facts?</div>
+<div class="sb-sub">Pivots from frustration to hope. High cross-partisan agreement makes the reward surprising. Source: ANES 5-point importance scale, top-2-box collapse.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What the user sees</div>
+<div class="sb-q">"How important is it that people agree on basic facts even if they disagree politically?"</div>
+<div class="sb-opts"><span class="sb-opt sel">Very important</span><span class="sb-opt">Somewhat important</span><span class="sb-opt">Not important</span></div>
+<div class="sb-reward">
+<div class="sb-reward-num">73%</div>
+<div class="sb-reward-txt">of Americans say agreeing on basic facts is important or very important — across all political backgrounds.</div>
+</div>
+</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">73% is a real weighted estimate (ANES, n=5,233). Top-2-box of a 5-point importance scale (responses 4+5). The editorial framing emphasizing cross-partisan agreement is accurate — this item shows minimal variation by party ID in the data.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag teal">Data: real weighted estimate</span><span class="sb-tag">Collected: nothing</span><span class="sb-tag">Auth: none</span></div>`},
+
+{id:"s4",label:"Step 4",name:"Geolocation",
+html:`<div class="sb-label">Silent data — micro-interaction 4</div>
+<div class="sb-title">It looks like you're in Texas</div>
+<div class="sb-sub">IP geolocation runs silently during Q1–Q3. After Q3 a confirmation popup appears. On confirmation all three rewards recalculate with state-level estimates. This is the first personalization moment and costs the user nothing.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What the user sees</div>
+<div class="sb-geo">
+<div class="sb-geo-icon">TX</div>
+<div>
+<div style="font-size:13px;color:var(--color-text-primary)">It looks like you're in <strong>Texas</strong> — is that right?</div>
+<div class="sb-geo-btns"><span class="sb-geo-btn yes">Yes, that's right</span><span class="sb-geo-btn">No, choose state</span></div>
+</div>
+</div>
+<div style="font-size:12px;color:var(--color-text-tertiary);margin:6px 0 8px">On confirmation, all three rewards update:</div>
+<div class="sb-bar-row"><div class="sb-bar-label">All Americans</div><div style="flex:1"><div class="sb-bar-outer"><div class="sb-bar-fill" style="width:78%"><span class="sb-bar-pct">78%</span></div></div></div></div>
+<div class="sb-bar-row"><div class="sb-bar-label">Texas</div><div style="flex:1"><div class="sb-bar-outer"><div class="sb-bar-fill" style="width:80%;background:#D97706"><span class="sb-bar-pct">80%</span></div></div></div></div>
+<div style="font-size:12px;color:var(--color-text-secondary);margin:6px 0 0">In Texas, 80% say wrong track — slightly above the national figure.</div>
+</div>
+<div class="sb-note"><strong>State is not a gate.</strong> Geolocation is an incentive, not a requirement. If the user skips or declines, all rewards remain at the national level and state can be entered later on the home page. The state variable carried forward from the landing page is pre-populated on the home page only if it was answered here — otherwise it appears as an available field.</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">IP geolocation via lightweight API (MaxMind GeoLite2 or similar), 95%+ accuracy for U.S. states. Texas estimates are real weighted ANES values: right track 80%, elections skeptical 75%, facts top-2 73%. State stored in cookie alongside Q1–Q3 responses. If user declines, state selector dropdown appears as fallback.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag gold">Collected: state (if confirmed)</span><span class="sb-tag">Auth: none</span><span class="sb-tag teal">Data: real weighted estimates</span></div>`},
+
+{id:"s5",label:"Step 5",name:"Email + OTP",
+html:`<div class="sb-label">The gate — value exchange</div>
+<div class="sb-title">Enter your email to save your civic profile</div>
+<div class="sb-sub">After 3 questions plus geolocation the user has enough investment to justify the ask. Email is validated immediately with OTP or magic link — no deferred verification.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What the user sees</div>
+<div style="font-size:13px;color:var(--color-text-primary);margin:0 0 12px;line-height:1.55">"Enter your email to save your civic profile and unlock Align — MOVE's tool for measuring how your representatives actually vote on your values."</div>
+<div style="display:flex;gap:8px;margin:0 0 10px">
+<div style="flex:1;height:34px;border-radius:8px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);display:flex;align-items:center;padding:0 12px;font-size:13px;color:var(--color-text-tertiary)">you@example.com</div>
+<div style="padding:0 14px;height:34px;border-radius:8px;background:#D97706;color:#fff;font-size:13px;display:flex;align-items:center">Continue</div>
+</div>
+<div style="font-size:12px;color:var(--color-text-tertiary);margin:0 0 8px">A 6-digit code is sent to their email. Mobile users paste it; desktop users can use the magic link.</div>
+</div>
+<div class="sb-congress-note">
+<strong>Why OTP at this step, not later?</strong> Deferring email verification lets bots accumulate accounts before they're caught. For MOVE's research-quality user dataset — a core funder and academic credibility asset — database integrity is a higher priority than marginal friction reduction. Estimated drop-off from OTP: 5–10% given the micro-commitment buildup across steps 1–4.
+</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture — pending decision</div>
+<div class="sb-arch-body">This is a <strong>passwordless auth</strong> path. No password field ever. Requires a transactional email service (SendGrid or SES), OTP generation with 10-minute expiry, rate limiting (3 attempts/email/hour), and token issuance on verification. The existing <code>POST /api/v1/auth/register</code> is password-based — a parallel passwordless path or full replacement is needed. Cookie-stored Q1–Q3 responses and state link to the new user record on account creation.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag gold">Account created: Tier 1</span><span class="sb-tag gold">Collected: verified email</span><span class="sb-tag teal">Gate: emailVerified = true</span></div>`},
+
+{id:"s6",label:"Step 6",name:"Home page",
+html:`<div class="sb-label">Post-email — the home page</div>
+<div class="sb-title">Your MOVE civic profile: 18% complete</div>
+<div class="sb-sub">After email verification the user lands on the home page. It does not look like a polling site. The profile card is dominant — a civic mirror showing their three funnel question rewards, now live and updatable as they add demographics. Explainer content surrounds it.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">What's on the profile card</div>
+<div style="font-size:13px;color:var(--color-text-secondary);line-height:1.65;margin:0 0 10px">The three questions from the landing page are <strong style="color:var(--color-text-primary)">carried forward and displayed as live comparison bars</strong>. Each shows the proportion of their current population cell who answered the same way. Providing a new demographic variable immediately recalculates all three bars — the bars are the reward.</div>
+<div class="sb-bar-row"><div class="sb-bar-label" style="font-size:11px">Wrong track</div><div style="flex:1"><div class="sb-bar-outer"><div class="sb-bar-fill" style="width:80%"><span class="sb-bar-pct">80%</span></div></div></div></div>
+<div class="sb-bar-row"><div class="sb-bar-label" style="font-size:11px">Elec. skeptical</div><div style="flex:1"><div class="sb-bar-outer"><div class="sb-bar-fill" style="width:75%"><span class="sb-bar-pct">75%</span></div></div></div></div>
+<div class="sb-bar-row"><div class="sb-bar-label" style="font-size:11px">Facts matter</div><div style="flex:1"><div class="sb-bar-outer"><div class="sb-bar-fill" style="width:73%"><span class="sb-bar-pct">73%</span></div></div></div></div>
+<div style="font-size:11px;color:var(--color-text-tertiary);margin:6px 0 0">Currently showing: Texas estimates (state confirmed on landing page)</div>
+</div>
+<div class="sb-note"><strong>State on the home page:</strong> If state was confirmed on the landing page, it is pre-populated here and the bars already show state-level estimates. If the user skipped geolocation, state appears as an available (non-required) field on the home page — adding it immediately updates all three bars to state-level estimates. Not a gate.</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">Home page served to all email-verified users. Profile card reads from <code>GET /api/v1/profile</code>. The comparison bars are the primary reward mechanism — each pulls from a pre-computed cell estimate lookup (static JSON keyed by variable combination). Align CTA is prominent but not the only content. MOVE explainer videos, methodology link, and movement content surround the card.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag gold">Tier 1 account</span><span class="sb-tag teal">Module: PROFILE</span><span class="sb-tag">Gate flags: emailVerified only</span></div>`},
+
+{id:"s7",label:"Step 7",name:"Progressive demographics",
+html:`<div class="sb-label">Tier 2 — building the profile</div>
+<div class="sb-title">Each detail sharpens your picture — and your voice</div>
+<div class="sb-sub">Demographics are collected on the profile card in a specific sequence: curiosity-driven first, sensitive items deferred, civic eligibility items called out explicitly. Two things are happening simultaneously — the Mirror (richer comparisons) and the Megaphone (congressional messaging eligibility).</div>
+<div class="sb-demo-seq">
+<div class="sb-demo-item">
+<div class="sb-demo-num">1</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">State <span class="sb-demo-badge align">pre-populated if answered on landing</span></div>
+<div class="sb-demo-desc">Already confirmed via geolocation, or entered here if skipped. Immediately updates all three comparison bars to state-level estimates. Not a gate — purely an incentive.</div>
+</div>
+</div>
+<div class="sb-demo-item">
+<div class="sb-demo-num">2</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">Birth year <span class="sb-demo-badge align">required for Align</span></div>
+<div class="sb-demo-desc">Lowest friction ask with highest dual payoff. Updates bars to age-group cell estimates. Also surfaces the Megaphone message: "Congressional offices require your age to accept constituent messages — that's their rule, not ours."</div>
+</div>
+</div>
+<div class="sb-demo-item">
+<div class="sb-demo-num">3</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">Race/ethnicity <span class="sb-demo-badge defer">collected during Align surveys</span></div>
+<div class="sb-demo-desc">Not asked here. Collected during the Align policy survey flow to avoid demographic priming before policy questions. Unlocks demographic subgroup comparisons post-scoring.</div>
+</div>
+</div>
+<div class="sb-demo-item">
+<div class="sb-demo-num">4</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">Sex <span class="sb-demo-badge defer">collected during Align surveys</span></div>
+<div class="sb-demo-desc">Same rationale as race/ethnicity. Deferred to avoid priming. Collected during Align survey flow.</div>
+</div>
+</div>
+<div class="sb-demo-item">
+<div class="sb-demo-num">5</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">Educational attainment</div>
+<div class="sb-demo-desc">Can be collected alongside professional experience question. Moderate sensitivity, strong personalization return — postgrads see notably different estimates (64% wrong track vs 78% national). Updates bars to education-cell estimates.</div>
+</div>
+</div>
+<div class="sb-demo-item">
+<div class="sb-demo-num">6</div>
+<div class="sb-demo-content">
+<div class="sb-demo-title">Address <span class="sb-demo-badge align">required for Align</span></div>
+<div class="sb-demo-desc">Final gate. Downplayed until everything else is unlocked. Triggers USPS → Census geocoder → district resolution → rep lookup → MoC card population. Megaphone message: "Add your address to identify your representatives and verify you're a constituent of your district."</div>
+</div>
+</div>
+</div>
+<div class="sb-congress-note"><strong>The "Congressional offices are required by law" copy</strong> lives on the Megaphone side of the profile card — shown prominently next to birth year and address asks. "Congressional offices are required by law to verify that messages come from actual constituents in their district. <em>That's Congress's rule, not ours.</em> MOVE uses your information only to identify your representatives and make your voice count." This copy does not yet exist in any platform document — it needs a home in UX copy specs or the frontend codebase.</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture</div>
+<div class="sb-arch-body">Birth year writes to <code>User.birthYear</code>, triggers <code>calculateAgeGroup()</code>. Demographics write to <code>UserDemographics</code> via <code>POST /api/v1/auth/demographics</code>. Address triggers full validation cascade. Each new variable updates gate flags and triggers a JWT refresh. Comparison bars re-query the cell estimate lookup keyed by current variable combination.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag gold">Tier 2 progressive</span><span class="sb-tag teal">Module: AUTH demographics</span><span class="sb-tag teal">Module: ADDRESS</span><span class="sb-tag teal">Module: REPRESENTATIVES</span></div>`},
+
+{id:"s8",label:"Step 8",name:"Front door of Align",
+html:`<div class="sb-label">Tier 3 — the destination</div>
+<div class="sb-title">Discover how your representatives actually vote on your values</div>
+<div class="sb-sub">Birth year and address are both on file. MoC cards are populated. The profile card is substantially complete. Clicking the Align CTA shunts the user into salience ranking — no policy issues mentioned yet, just the promise of alignment insight.</div>
+<div class="sb-mock">
+<div class="sb-mock-label">Profile card at Tier 3</div>
+<div style="border:0.5px solid #0F4C4C;border-radius:var(--border-radius-md);padding:14px 16px;background:var(--color-background-primary)">
+<div style="display:flex;justify-content:space-between;align-items:center;margin:0 0 8px">
+<div style="font-size:13px;font-weight:500;color:var(--color-text-primary)">Your MOVE civic profile</div>
+<div style="font-size:12px;color:#D97706;font-weight:500">72% complete</div>
+</div>
+<div style="height:5px;background:var(--color-background-secondary);border-radius:3px;overflow:hidden;margin:0 0 12px"><div style="height:100%;width:72%;background:#D97706;border-radius:3px"></div></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:0 0 12px">
+<div style="border:0.5px solid #0F4C4C;border-radius:6px;padding:10px 8px;text-align:center;font-size:11px;color:var(--color-text-primary)">Rep. [Name]<br><span style="color:#0F4C4C;font-size:10px">TX-32</span></div>
+<div style="border:0.5px solid #0F4C4C;border-radius:6px;padding:10px 8px;text-align:center;font-size:11px;color:var(--color-text-primary)">Sen. [Name]<br><span style="color:#0F4C4C;font-size:10px">Texas</span></div>
+<div style="border:0.5px solid #0F4C4C;border-radius:6px;padding:10px 8px;text-align:center;font-size:11px;color:var(--color-text-primary)">Sen. [Name]<br><span style="color:#0F4C4C;font-size:10px">Texas</span></div>
+</div>
+<div style="text-align:center;padding:10px 0 4px">
+<div style="display:inline-block;background:#D97706;color:#fff;font-size:13px;padding:9px 22px;border-radius:8px">Discover your Alignment Score →</div>
+</div>
+</div>
+</div>
+<div class="sb-arch">
+<div class="sb-arch-title">Architecture — Milestone 2 begins here</div>
+<div class="sb-arch-body">Gate flags at this point: <code>profileCompleted = true</code>, <code>addressValidated = true</code>. Clicking the CTA triggers inline validation — any missing required field is collected before proceeding. Salience ranking (M-SALIENCE) → policy survey batteries (M-SURVEYS) → scoring pipeline (M-SCORING, M12 MRP, M14 IRT). Race/ethnicity and sex are collected during the survey flow before the final battery.</div>
+</div>
+<div class="sb-tags"><span class="sb-tag gold">Tier 3 — Align ready</span><span class="sb-tag teal">Next: M-SALIENCE</span><span class="sb-tag teal">Next: M-SURVEYS</span><span class="sb-tag teal">Next: M-SCORING</span></div>`}
+];
+
+const nav=document.getElementById('nav');
+const container=document.getElementById('stages');
+stages.forEach((s,i)=>{
+  const pill=document.createElement('div');
+  pill.className='sb-pill'+(i===0?' active':'');
+  pill.textContent=s.label+': '+s.name;
+  pill.onclick=(()=>{const idx=i;return()=>show(idx);})();
+  nav.appendChild(pill);
+  const div=document.createElement('div');
+  div.className='sb-stage'+(i===0?' active':'');
+  let next=i<stages.length-1?`<div class="sb-next"><span class="sb-next-btn" onclick="show(${i+1})">Next: ${stages[i+1].name} &#8594;</span></div>`:'';
+  div.innerHTML=s.html+next;
+  container.appendChild(div);
+});
+function show(i){
+  document.querySelectorAll('.sb-pill').forEach((p,j)=>p.className='sb-pill'+(j===i?' active':''));
+  document.querySelectorAll('.sb-stage').forEach((s,j)=>s.className='sb-stage'+(j===i?' active':''));
+}
+window.show=show;
+</script>

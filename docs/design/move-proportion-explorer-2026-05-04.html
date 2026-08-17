@@ -1,0 +1,216 @@
+<!--
+  PROVENANCE — read before editing or reusing.
+
+  MOVE proportion explorer. Authored 2026-05-04 15:41.
+
+  Recovered from /mnt/R/align-platform, a stale snapshot of demographai-platform
+  whose last commit was 2026-04-29. This file was written five days AFTER that
+  commit and was never tracked in any repository, so it existed as a single
+  untracked working-tree file until it was moved here on 2026-08-17.
+
+  What it is: an interactive explorer over real ANES weighted estimates for
+  national and Texas cells, with logit-interpolated estimates for age and
+  education subgroups. Implements the "Agree on basic facts" question and the
+  progressive cell-refinement mechanic — All Americans, then narrowing, showing
+  who answered the same as you versus differently.
+
+  Status: NOT superseded. Unlike the funnel storyboard alongside it, nothing in
+  this repository replaces it — there is no proportion-explorer equivalent in
+  demo/. It is the earliest working expression of the cell-refinement mechanic
+  that the funnel five later generalised.
+
+  Numbers here predate the fits in this repo. Treat the estimates as
+  illustrative of the interaction, not as current values; data/estimates/ is
+  authoritative.
+-->
+
+<h2 class="sr-only">Final MOVE proportion explorer with real ANES weighted estimates for national and Texas cells and logit-interpolated estimates for age and education subgroups</h2>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Playfair+Display:wght@600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+.px{font-family:'DM Sans',var(--font-sans);max-width:680px;padding:4px 0}
+.px-q-tabs{display:flex;gap:0;margin:0 0 14px;border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);overflow:hidden}
+.px-q-tab{flex:1;font-size:12px;padding:7px 5px;cursor:pointer;text-align:center;background:var(--color-background-primary);color:var(--color-text-secondary);border:none;transition:all .2s;line-height:1.3;font-family:'DM Sans',var(--font-sans)}
+.px-q-tab:not(:last-child){border-right:0.5px solid var(--color-border-tertiary)}
+.px-q-tab.active{background:#0F4C4C;color:#F8F5F0}
+.px-answer{font-size:13px;color:var(--color-text-secondary);margin:0 0 12px;line-height:1.5;padding:8px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
+.px-answer strong{color:var(--color-text-primary)}
+.px-demo-label{font-size:11px;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.3px;margin:0 0 6px}
+.px-toggles{display:flex;gap:6px;margin:0 0 14px;flex-wrap:wrap}
+.px-tg{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:14px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);transition:all .2s;user-select:none}
+.px-tg.on{border-color:#0F4C4C;background:rgba(15,76,76,0.07)}
+.px-tg.on .px-tg-dot{background:#0F4C4C;border-color:#0F4C4C}
+.px-tg.on .px-tg-text{color:#0F4C4C;font-weight:500}
+.px-tg-dot{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--color-border-secondary);transition:all .2s;flex-shrink:0}
+.px-tg-text{font-size:12px;color:var(--color-text-secondary);transition:color .2s}
+.px-vis{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:20px 24px;margin:0 0 10px}
+.px-big-num{font-family:'Playfair Display',var(--font-serif);font-size:58px;font-weight:600;color:#0F4C4C;line-height:1;margin:0 0 3px;transition:all .35s}
+.px-big-label{font-size:13px;color:var(--color-text-secondary);margin:0 0 18px;line-height:1.5}
+.px-big-label strong{color:var(--color-text-primary)}
+.px-bar-outer{height:32px;background:var(--color-background-primary);border-radius:8px;overflow:hidden;border:0.5px solid var(--color-border-tertiary);position:relative;margin:0 0 4px}
+.px-bar-fill{height:100%;border-radius:8px 0 0 8px;background:#0F4C4C;transition:width .5s ease;position:relative}
+.px-bar-in{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:500;color:#F8F5F0;white-space:nowrap;transition:opacity .3s}
+.px-bar-out{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:500;color:#0F4C4C;white-space:nowrap;transition:all .3s}
+.px-bar-rest{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--color-text-tertiary)}
+.px-cell-row{display:flex;align-items:center;justify-content:space-between;margin:4px 0 0}
+.px-cell-pill{font-size:11px;color:#0F4C4C;background:rgba(15,76,76,0.07);border:0.5px solid rgba(15,76,76,0.2);border-radius:10px;padding:2px 9px}
+.px-n-note{font-size:11px;color:var(--color-text-tertiary);font-style:italic}
+.px-majority{font-size:13px;padding:10px 14px;border-radius:var(--border-radius-md);margin:10px 0 0;line-height:1.5;transition:all .3s}
+.px-majority.with{background:rgba(15,76,76,0.07);color:#0F4C4C}
+.px-majority.against{background:rgba(217,119,6,0.07);color:#B55A1A}
+.px-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+.px-stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:9px 12px;text-align:center}
+.px-stat-val{font-size:17px;font-weight:500;color:var(--color-text-primary)}
+.px-stat-label{font-size:11px;color:var(--color-text-tertiary);margin-top:1px}
+.px-method-link{font-size:11px;color:var(--color-text-tertiary);text-align:right;margin:2px 0 0;cursor:pointer}
+.px-method-link:hover{color:#0F4C4C;text-decoration:underline}
+.px-method-panel{display:none;font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px;margin:6px 0 0;line-height:1.65;border-left:3px solid var(--color-border-secondary)}
+.px-method-panel.open{display:block}
+.px-method-panel code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-primary);padding:1px 4px;border-radius:3px}
+</style>
+
+<div class="px">
+<div class="px-q-tabs">
+  <button class="px-q-tab active" onclick="setQ(0)">Right track / wrong track</button>
+  <button class="px-q-tab" onclick="setQ(1)">Elections &amp; accountability</button>
+  <button class="px-q-tab" onclick="setQ(2)">Agree on basic facts</button>
+</div>
+<div class="px-answer" id="px-answer"></div>
+<div class="px-demo-label">Refine your population cell — toggle in any order</div>
+<div class="px-toggles">
+  <div class="px-tg on" id="tg-nat" onclick="tv('nat')"><div class="px-tg-dot"></div><div class="px-tg-text">All Americans</div></div>
+  <div class="px-tg" id="tg-state" onclick="tv('state')"><div class="px-tg-dot"></div><div class="px-tg-text">Texas</div></div>
+  <div class="px-tg" id="tg-age" onclick="tv('age')"><div class="px-tg-dot"></div><div class="px-tg-text">Age 50–54</div></div>
+  <div class="px-tg" id="tg-edu" onclick="tv('edu')"><div class="px-tg-dot"></div><div class="px-tg-text">Postgrad</div></div>
+</div>
+<div class="px-vis">
+  <div class="px-big-num" id="big-num">—</div>
+  <div class="px-big-label" id="big-label"></div>
+  <div class="px-bar-outer" id="bar-outer">
+    <div class="px-bar-fill" id="bar-fill">
+      <span class="px-bar-in" id="bar-in"></span>
+    </div>
+    <div class="px-bar-out" id="bar-out"></div>
+    <div class="px-bar-rest" id="bar-rest"></div>
+  </div>
+  <div class="px-cell-row">
+    <div class="px-cell-pill" id="cell-pill">All Americans</div>
+    <div class="px-n-note" id="n-note"></div>
+  </div>
+  <div class="px-majority" id="majority"></div>
+</div>
+<div class="px-stats">
+  <div class="px-stat"><div class="px-stat-val" id="s-pct">—</div><div class="px-stat-label">Answered same as you</div></div>
+  <div class="px-stat"><div class="px-stat-val" id="s-opp">—</div><div class="px-stat-label">Answered differently</div></div>
+  <div class="px-stat"><div class="px-stat-val" id="s-n">—</div><div class="px-stat-label">Sample n (ANES)</div></div>
+</div>
+<div class="px-method-link" onclick="toggleMethod()">Methodology note ▾</div>
+<div class="px-method-panel" id="method-panel">
+  National and Texas estimates are survey-weighted means from ANES data (n≈5,200). Age 50–54 and postgrad estimates are also from ANES using the same weights; joint cell estimates where sample n&lt;100 are extrapolated using logit-additive deltas derived from the observed marginals — not MRP. The CI around thin-cell estimates is wider and not shown here. Final platform values will use full Bayesian MRP with ACS poststratification to produce proper posterior distributions for all cells. These numbers are illustrative for design purposes only.
+</div>
+</div>
+
+<script>
+const Qs=[
+  {answerText:'Your answer: <strong>Wrong track.</strong> What share of your selected population answered the same way?',
+   agreeLabel:'said wrong track',oppLabel:'said right direction',
+   cells:{
+    nat:          {p:78,n:5226,real:true},
+    state:        {p:80,n:408, real:true},
+    age:          {p:80,n:380, real:true},
+    edu:          {p:62,n:1044,real:true},
+    state_age:    {p:82,n:25,  real:false},
+    state_edu:    {p:65,n:52,  real:false},
+    age_edu:      {p:66,n:82,  real:true},
+    state_age_edu:{p:68,n:4,   real:false}
+   }},
+  {answerText:'Your answer: <strong>Not much.</strong> What share felt elections don\'t fully make government listen?',
+   agreeLabel:'felt elections fall short',oppLabel:'felt elections work well',
+   cells:{
+    nat:          {p:71,n:5261,real:true},
+    state:        {p:75,n:413, real:true},
+    age:          {p:69,n:384, real:true},
+    edu:          {p:60,n:1054,real:true},
+    state_age:    {p:74,n:25,  real:false},
+    state_edu:    {p:66,n:54,  real:false},
+    age_edu:      {p:58,n:83,  real:true},
+    state_age_edu:{p:63,n:4,   real:false}
+   }},
+  {answerText:'Your answer: <strong>Very important.</strong> What share also said agreeing on basic facts matters?',
+   agreeLabel:'said facts agreement is important',oppLabel:'were less concerned',
+   cells:{
+    nat:          {p:73,n:5233,real:true},
+    state:        {p:73,n:410, real:true},
+    age:          {p:73,n:384, real:true},
+    edu:          {p:84,n:1049,real:true},
+    state_age:    {p:73,n:25,  real:false},
+    state_edu:    {p:84,n:54,  real:false},
+    age_edu:      {p:84,n:83,  real:true},
+    state_age_edu:{p:84,n:4,   real:false}
+   }}
+];
+
+let activeQ=0;
+let vars={nat:true,state:false,age:false,edu:false};
+
+function setQ(i){activeQ=i;document.querySelectorAll('.px-q-tab').forEach((t,j)=>t.className='px-q-tab'+(j===i?' active':''));render();}
+
+function tv(v){
+  if(v==='nat'){vars.nat=!vars.nat;if(!Object.values(vars).some(Boolean))vars.nat=true;}
+  else{vars[v]=!vars[v];if(!Object.values(vars).some(Boolean))vars.nat=true;}
+  Object.keys(vars).forEach(k=>{const el=document.getElementById('tg-'+k);if(el)el.className='px-tg'+(vars[k]?' on':'');});
+  render();
+}
+
+function getCellKey(){const p=[];if(vars.state)p.push('state');if(vars.age)p.push('age');if(vars.edu)p.push('edu');return p.length===0?'nat':p.join('_');}
+
+function getCellDesc(){
+  const p=[];
+  if(vars.state)p.push('Texans');
+  if(vars.age)p.push('age 50–54');
+  if(vars.edu)p.push('postgrad');
+  if(p.length===0)return{short:'All Americans',of:'of all Americans'};
+  return{short:p.join(' · '),of:'among '+p.join(', ')};
+}
+
+function toggleMethod(){document.getElementById('method-panel').classList.toggle('open');}
+
+function render(){
+  const q=Qs[activeQ];
+  const key=getCellKey();
+  const cell=q.cells[key]||q.cells['nat'];
+  const{p,n,real}=cell;
+  const opp=100-p;
+  const desc=getCellDesc();
+
+  document.getElementById('px-answer').innerHTML=q.answerText;
+  document.getElementById('big-num').textContent=p+'%';
+  document.getElementById('big-label').innerHTML=desc.of+' <strong>'+q.agreeLabel+'.</strong>';
+
+  const fill=document.getElementById('bar-fill');
+  fill.style.width=p+'%';
+  const barIn=document.getElementById('bar-in');
+  const barOut=document.getElementById('bar-out');
+  if(p>18){barIn.style.opacity='1';barIn.textContent=p+'% '+q.agreeLabel;barOut.style.opacity='0';}
+  else{barIn.style.opacity='0';barOut.style.opacity='1';barOut.style.left=(p+1)+'%';barOut.textContent=p+'%';}
+  document.getElementById('bar-rest').textContent=opp+'% '+q.oppLabel;
+
+  document.getElementById('cell-pill').textContent=desc.short;
+
+  let nNote='';
+  if(!real)nNote='estimated — thin cell (n='+n+')';
+  else if(n<100)nNote='n='+n+' — small, use with caution';
+  else nNote='n='+n.toLocaleString()+' (real weighted estimate)';
+  document.getElementById('n-note').textContent=nNote;
+
+  const maj=document.getElementById('majority');
+  if(p>=50){maj.className='px-majority with';maj.textContent='You\'re with the majority — '+p+'% '+desc.of+' answered the same way.';}
+  else{maj.className='px-majority against';maj.textContent='You\'re in the minority — only '+p+'% '+desc.of+' answered the same way.';}
+
+  document.getElementById('s-pct').textContent=p+'%';
+  document.getElementById('s-opp').textContent=opp+'%';
+  document.getElementById('s-n').textContent=n<100?n:n.toLocaleString();
+}
+
+render();
+</script>
